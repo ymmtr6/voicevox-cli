@@ -7,14 +7,14 @@ interface HookInput {
   transcript_path?: string;
 }
 
-interface TranscriptMessage {
-  role: string;
-  content: string | Array<{ type: string; text?: string }>;
+interface TranscriptEntry {
+  type: string;
+  message?: {
+    role: string;
+    content: string | Array<{ type: string; text?: string }>;
+  };
 }
 
-interface Transcript {
-  messages?: TranscriptMessage[];
-}
 
 function readStdin(): Promise<string> {
   // TTY から直接実行された場合はハングを防ぐため空 JSON を即時返す
@@ -62,13 +62,16 @@ export async function runSpeakHooks(options: {
   if (hookData.transcript_path) {
     try {
       const raw = await readFile(hookData.transcript_path, "utf-8");
-      const transcript: Transcript = JSON.parse(raw);
-      const messages = (transcript.messages ?? []).filter(
-        (m) => m.role === "assistant"
-      );
-      if (messages.length > 0) {
-        const last = messages[messages.length - 1];
-        let content = last.content;
+      // Claude Code のトランスクリプトは JSONL 形式（1行1JSON）
+      // 各行は { type: "assistant", message: { role, content } } の構造
+      const entries = raw
+        .split("\n")
+        .filter((line) => line.trim())
+        .map((line) => { try { return JSON.parse(line) as TranscriptEntry; } catch { return null; } })
+        .filter((e): e is TranscriptEntry => e !== null && e.type === "assistant" && e.message != null);
+      if (entries.length > 0) {
+        const last = entries[entries.length - 1];
+        let content = last.message!.content;
         if (Array.isArray(content)) {
           content = content
             .filter((c) => c.type === "text")
