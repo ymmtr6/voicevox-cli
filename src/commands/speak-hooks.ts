@@ -7,6 +7,8 @@ interface HookInput {
   stop_hook_active?: boolean;
   transcript_path?: string;
   last_assistant_message?: string;
+  "last-assistant-message"?: string;
+  type?: string;
   // Notification hook fields
   message?: string;
   notification_type?: string;
@@ -33,7 +35,16 @@ function readStdin(): Promise<string> {
   });
 }
 
-async function extractFromTranscript(transcriptPath: string, chars: number): Promise<string | null> {
+function firstLine(text: string): string {
+  return text.split("\n").find((line) => line.trim()) ?? text;
+}
+
+function transformUrls(text: string): string {
+  // https://github.com/foo/bar → URL: github.com
+  return text.replace(/https?:\/\/([^/\s]+)[^\s]*/g, "URL: $1");
+}
+
+async function extractFromTranscript(transcriptPath: string): Promise<string | null> {
   try {
     const raw = await readFile(transcriptPath, "utf-8");
     const entries = raw
@@ -48,10 +59,10 @@ async function extractFromTranscript(transcriptPath: string, chars: number): Pro
         content = content
           .filter((c) => c.type === "text")
           .map((c) => c.text ?? "")
-          .join(" ");
+          .join("\n");
       }
       if (typeof content === "string" && content.trim()) {
-        return content.slice(0, chars);
+        return firstLine(content);
       }
     }
   } catch {
@@ -65,10 +76,11 @@ export async function runSpeakHooks(options: {
   port: number;
   speaker?: number;
   speed?: number;
-  chars: number;
   fallback: string;
+  payload?: string;
 }): Promise<void> {
-  const input = await readStdin();
+  // Codex は JSON をコマンドライン引数で渡す。Claude Code は stdin で渡す。
+  const input = options.payload ?? await readStdin();
 
   let hookData: HookInput = {};
   try {
@@ -87,24 +99,29 @@ export async function runSpeakHooks(options: {
     cliSpeed: options.speed,
   });
 
-  const chars = Number.isFinite(options.chars) && options.chars > 0 ? options.chars : 100;
   const eventName = hookData.hook_event_name;
   let text = options.fallback;
 
   if (eventName === "Notification") {
     // Notification hook: message フィールドを直接使用
     if (hookData.message?.trim()) {
-      text = hookData.message.slice(0, chars);
+      text = firstLine(hookData.message);
+    }
+  } else if (hookData.type === "agent-turn-complete") {
+    // Codex notify: last-assistant-message (kebab-case)
+    const codexMessage = hookData["last-assistant-message"];
+    if (codexMessage?.trim()) {
+      text = firstLine(codexMessage);
     }
   } else {
     // Stop / SubagentStop: last_assistant_message を優先、なければ transcript を解析
     if (hookData.last_assistant_message?.trim()) {
-      text = hookData.last_assistant_message.slice(0, chars);
+      text = firstLine(hookData.last_assistant_message);
     } else if (hookData.transcript_path) {
-      const extracted = await extractFromTranscript(hookData.transcript_path, chars);
+      const extracted = await extractFromTranscript(hookData.transcript_path);
       if (extracted) text = extracted;
     }
   }
 
-  await runSpeak(text, options.host, options.port, speaker, speed);
+  await runSpeak(transformUrls(text), options.host, options.port, speaker, speed);
 }
