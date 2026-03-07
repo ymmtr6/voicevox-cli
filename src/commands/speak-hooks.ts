@@ -3,8 +3,13 @@ import { runSpeak } from "./speak.js";
 import { resolveConfig } from "../config.js";
 
 interface HookInput {
+  hook_event_name?: string;
   stop_hook_active?: boolean;
   transcript_path?: string;
+  last_assistant_message?: string;
+  // Notification hook fields
+  message?: string;
+  notification_type?: string;
 }
 
 interface TranscriptEntry {
@@ -14,7 +19,6 @@ interface TranscriptEntry {
     content: string | Array<{ type: string; text?: string }>;
   };
 }
-
 
 function readStdin(): Promise<string> {
   // TTY から直接実行された場合はハングを防ぐため空 JSON を即時返す
@@ -27,6 +31,33 @@ function readStdin(): Promise<string> {
     process.stdin.on("data", (chunk) => { data += chunk; });
     process.stdin.on("end", () => { resolve(data); });
   });
+}
+
+async function extractFromTranscript(transcriptPath: string, chars: number): Promise<string | null> {
+  try {
+    const raw = await readFile(transcriptPath, "utf-8");
+    const entries = raw
+      .split("\n")
+      .filter((line) => line.trim())
+      .map((line) => { try { return JSON.parse(line) as TranscriptEntry; } catch { return null; } })
+      .filter((e): e is TranscriptEntry => e !== null && e.type === "assistant" && e.message != null);
+    if (entries.length > 0) {
+      const last = entries[entries.length - 1];
+      let content = last.message!.content;
+      if (Array.isArray(content)) {
+        content = content
+          .filter((c) => c.type === "text")
+          .map((c) => c.text ?? "")
+          .join(" ");
+      }
+      if (typeof content === "string" && content.trim()) {
+        return content.slice(0, chars);
+      }
+    }
+  } catch {
+    // transcript が読めない場合は null を返す
+  }
+  return null;
 }
 
 export async function runSpeakHooks(options: {
@@ -57,33 +88,21 @@ export async function runSpeakHooks(options: {
   });
 
   const chars = Number.isFinite(options.chars) && options.chars > 0 ? options.chars : 100;
+  const eventName = hookData.hook_event_name;
   let text = options.fallback;
 
-  if (hookData.transcript_path) {
-    try {
-      const raw = await readFile(hookData.transcript_path, "utf-8");
-      // Claude Code のトランスクリプトは JSONL 形式（1行1JSON）
-      // 各行は { type: "assistant", message: { role, content } } の構造
-      const entries = raw
-        .split("\n")
-        .filter((line) => line.trim())
-        .map((line) => { try { return JSON.parse(line) as TranscriptEntry; } catch { return null; } })
-        .filter((e): e is TranscriptEntry => e !== null && e.type === "assistant" && e.message != null);
-      if (entries.length > 0) {
-        const last = entries[entries.length - 1];
-        let content = last.message!.content;
-        if (Array.isArray(content)) {
-          content = content
-            .filter((c) => c.type === "text")
-            .map((c) => c.text ?? "")
-            .join(" ");
-        }
-        if (typeof content === "string" && content.trim()) {
-          text = content.slice(0, chars);
-        }
-      }
-    } catch {
-      // transcript が読めない場合はフォールバックメッセージを使用
+  if (eventName === "Notification") {
+    // Notification hook: message フィールドを直接使用
+    if (hookData.message?.trim()) {
+      text = hookData.message.slice(0, chars);
+    }
+  } else {
+    // Stop / SubagentStop: last_assistant_message を優先、なければ transcript を解析
+    if (hookData.last_assistant_message?.trim()) {
+      text = hookData.last_assistant_message.slice(0, chars);
+    } else if (hookData.transcript_path) {
+      const extracted = await extractFromTranscript(hookData.transcript_path, chars);
+      if (extracted) text = extracted;
     }
   }
 
