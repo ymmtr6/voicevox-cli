@@ -95,7 +95,7 @@ program
 
 program
   .command("speak-hooks [payload]")
-  .description("Stop/Notification hook 用: JSON を解析して最後の assistant メッセージを読み上げます (stdin または引数で受け取る)")
+  .description("Stop/SubagentStop/Notification hook 用: JSON を解析して読み上げます (stdin または引数で受け取る)")
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .option("-s, --speaker <id>", "話者ID")
