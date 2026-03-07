@@ -5,6 +5,9 @@ import { resolveConfig } from "../config.js";
 interface HookInput {
   stop_hook_active?: boolean;
   transcript_path?: string;
+  last_assistant_message?: string;
+  "last-assistant-message"?: string;
+  type?: string;
 }
 
 interface TranscriptEntry {
@@ -29,15 +32,20 @@ function readStdin(): Promise<string> {
   });
 }
 
+function firstLine(text: string): string {
+  return text.split("\n").find((line) => line.trim()) ?? text;
+}
+
 export async function runSpeakHooks(options: {
   host: string;
   port: number;
   speaker?: number;
   speed?: number;
-  chars: number;
   fallback: string;
+  payload?: string;
 }): Promise<void> {
-  const input = await readStdin();
+  // Codex は JSON をコマンドライン引数で渡す。Claude Code は stdin で渡す。
+  const input = options.payload ?? await readStdin();
 
   let hookData: HookInput = {};
   try {
@@ -56,10 +64,14 @@ export async function runSpeakHooks(options: {
     cliSpeed: options.speed,
   });
 
-  const chars = Number.isFinite(options.chars) && options.chars > 0 ? options.chars : 100;
   let text = options.fallback;
 
-  if (hookData.transcript_path) {
+  // 1. last_assistant_message (Claude Code Notification hook / snake_case)
+  // 2. last-assistant-message (Codex notify / kebab-case)
+  const directMessage = hookData.last_assistant_message ?? hookData["last-assistant-message"];
+  if (directMessage && directMessage.trim()) {
+    text = firstLine(directMessage);
+  } else if (hookData.transcript_path) {
     try {
       const raw = await readFile(hookData.transcript_path, "utf-8");
       // Claude Code のトランスクリプトは JSONL 形式（1行1JSON）
@@ -76,10 +88,10 @@ export async function runSpeakHooks(options: {
           content = content
             .filter((c) => c.type === "text")
             .map((c) => c.text ?? "")
-            .join(" ");
+            .join("\n");
         }
         if (typeof content === "string" && content.trim()) {
-          text = content.slice(0, chars);
+          text = firstLine(content);
         }
       }
     } catch {

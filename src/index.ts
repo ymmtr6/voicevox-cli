@@ -94,22 +94,21 @@ program
   });
 
 program
-  .command("speak-hooks")
-  .description("Stop hook 用: stdin の hook JSON を解析して最後の assistant メッセージを読み上げます")
+  .command("speak-hooks [payload]")
+  .description("Stop/Notification hook 用: JSON を解析して最後の assistant メッセージを読み上げます (stdin または引数で受け取る)")
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .option("-s, --speaker <id>", "話者ID")
   .option("--speed <speed>", "話速 (例: 1.3)")
-  .option("--chars <n>", "読み上げ文字数の上限", "100")
   .option("--fallback <text>", "transcript がない場合のメッセージ", "クロードの作業が完了しました")
-  .action(async (options) => {
+  .action(async (payload, options) => {
     await runSpeakHooks({
       host: options.host,
       port: Number(options.port),
       speaker: options.speaker !== undefined ? Number(options.speaker) : undefined,
       speed: options.speed !== undefined ? Number(options.speed) : undefined,
-      chars: Number(options.chars),
       fallback: options.fallback,
+      payload,
     });
   });
 
