@@ -17,6 +17,10 @@ interface Transcript {
 }
 
 function readStdin(): Promise<string> {
+  // TTY から直接実行された場合はハングを防ぐため空 JSON を即時返す
+  if (process.stdin.isTTY) {
+    return Promise.resolve("{}");
+  }
   return new Promise((resolve) => {
     let data = "";
     process.stdin.setEncoding("utf-8");
@@ -52,6 +56,7 @@ export async function runSpeakHooks(options: {
     cliSpeed: options.speed,
   });
 
+  const chars = Number.isFinite(options.chars) && options.chars > 0 ? options.chars : 100;
   let text = options.fallback;
 
   if (hookData.transcript_path) {
@@ -71,7 +76,7 @@ export async function runSpeakHooks(options: {
             .join(" ");
         }
         if (typeof content === "string" && content.trim()) {
-          text = content.slice(0, options.chars);
+          text = content.slice(0, chars);
         }
       }
     } catch {
