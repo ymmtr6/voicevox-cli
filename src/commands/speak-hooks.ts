@@ -36,6 +36,11 @@ function firstLine(text: string): string {
   return text.split("\n").find((line) => line.trim()) ?? text;
 }
 
+function transformUrls(text: string): string {
+  // https://github.com/foo/bar → URL: github.com
+  return text.replace(/https?:\/\/([^/\s]+)[^\s]*/g, "URL: $1");
+}
+
 export async function runSpeakHooks(options: {
   host: string;
   port: number;
@@ -99,5 +104,5 @@ export async function runSpeakHooks(options: {
     }
   }
 
-  await runSpeak(text, options.host, options.port, speaker, speed);
+  await runSpeak(transformUrls(text), options.host, options.port, speaker, speed);
 }
