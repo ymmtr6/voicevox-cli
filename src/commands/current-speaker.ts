@@ -17,7 +17,7 @@ async function resolveSpeakerName(
     const client = new VoiceVoxClient({ host, port });
     const allSpeakers = await client.getSpeakers();
     const flat = allSpeakers.flatMap((s) =>
-      s.styles.map((st) => ({ id: st.id, name: `${s.name}（${st.name}）` }))
+      s.styles.map((st) => ({ id: st.id, name: s.name }))
     );
     await writeSpeakersCache(flat);
     return flat.find((s) => s.id === speakerId)?.name;
@@ -38,6 +38,6 @@ export async function runCurrentSpeaker(options: {
   if (options.json) {
     console.log(JSON.stringify({ status: "ok", speaker, name: label }));
   } else {
-    console.log(`🎤 ${label}`);
+    console.log(`💬 VOICEVOX:${label}`);
   }
 }
