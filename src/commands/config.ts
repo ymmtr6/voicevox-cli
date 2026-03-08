@@ -30,10 +30,10 @@ export async function runConfigSet(key: string, value: string): Promise<void> {
     return;
   }
 
-  if (key !== "speaker" && key !== "speed") {
+  if (key !== "speaker" && key !== "speed" && key !== "timeoutMs" && key !== "retryCount" && key !== "retryDelayMs") {
     const result: ConfigResult = {
       status: "error",
-      message: `Invalid key: "${key}". Valid keys are: speaker, speed, speaker-pool`,
+      message: `Invalid key: "${key}". Valid keys are: speaker, speed, speaker-pool, timeoutMs, retryCount, retryDelayMs`,
     };
     console.log(JSON.stringify(result, null, 2));
     process.exit(1);
@@ -47,6 +47,29 @@ export async function runConfigSet(key: string, value: string): Promise<void> {
     };
     console.log(JSON.stringify(result, null, 2));
     process.exit(1);
+  }
+
+  // Additional validation for timeout/retry settings
+  if (key === "timeoutMs" || key === "retryDelayMs") {
+    if (!Number.isFinite(num) || num < 0) {
+      const result: ConfigResult = {
+        status: "error",
+        message: `Invalid value for ${key}: "${value}". Must be a non-negative number`,
+      };
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(1);
+    }
+  }
+
+  if (key === "retryCount") {
+    if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      const result: ConfigResult = {
+        status: "error",
+        message: `Invalid value for retryCount: "${value}". Must be a non-negative integer`,
+      };
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(1);
+    }
   }
 
   const updated = { ...current, [key]: num };

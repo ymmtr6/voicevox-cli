@@ -36,6 +36,35 @@ export async function writeSpeakersCache(
 
 const DEFAULT_SPEAKER = 1;
 const DEFAULT_SPEED = 1.3;
+export const DEFAULT_TIMEOUT_MS = 30000;
+export const DEFAULT_RETRY_COUNT = 0;
+export const DEFAULT_RETRY_DELAY_MS = 1000;
+
+/**
+ * Validates and returns a valid timeout/delay value in milliseconds.
+ * Returns default value if input is invalid (NaN, negative, or not finite).
+ */
+function validateNonNegativeMs(
+  value: number | undefined,
+  defaultValue: number
+): number {
+  if (value === undefined) return defaultValue;
+  if (!Number.isFinite(value) || value < 0) return defaultValue;
+  return value;
+}
+
+/**
+ * Validates and returns a valid retry count (non-negative integer).
+ * Returns default value if input is invalid.
+ */
+function validateRetryCount(
+  value: number | undefined,
+  defaultValue: number
+): number {
+  if (value === undefined) return defaultValue;
+  if (!Number.isFinite(value) || value < 0) return defaultValue;
+  return Math.floor(value);
+}
 
 function getConfigPath(): string {
   return join(homedir(), ".config", "voicevox-cli", "config.json");
@@ -59,7 +88,16 @@ export async function writeConfig(config: Config): Promise<void> {
 export async function resolveConfig(options: {
   cliSpeaker?: number;
   cliSpeed?: number;
-}): Promise<{ speaker: number; speed: number }> {
+  cliTimeoutMs?: number;
+  cliRetryCount?: number;
+  cliRetryDelayMs?: number;
+}): Promise<{
+  speaker: number;
+  speed: number;
+  timeoutMs: number;
+  retryCount: number;
+  retryDelayMs: number;
+}> {
   const file = await readConfig();
 
   const envSpeaker = process.env.VOICEVOX_SPEAKER
@@ -67,6 +105,15 @@ export async function resolveConfig(options: {
     : undefined;
   const envSpeed = process.env.VOICEVOX_SPEED
     ? Number(process.env.VOICEVOX_SPEED)
+    : undefined;
+  const envTimeoutMs = process.env.VOICEVOX_TIMEOUT_MS
+    ? Number(process.env.VOICEVOX_TIMEOUT_MS)
+    : undefined;
+  const envRetryCount = process.env.VOICEVOX_RETRY_COUNT
+    ? Number(process.env.VOICEVOX_RETRY_COUNT)
+    : undefined;
+  const envRetryDelayMs = process.env.VOICEVOX_RETRY_DELAY_MS
+    ? Number(process.env.VOICEVOX_RETRY_DELAY_MS)
     : undefined;
 
   const speaker =
@@ -81,5 +128,21 @@ export async function resolveConfig(options: {
     file.speed ??
     DEFAULT_SPEED;
 
-  return { speaker, speed };
+  // Apply validation for timeout/retry settings
+  const timeoutMs = validateNonNegativeMs(
+    options.cliTimeoutMs ?? envTimeoutMs ?? file.timeoutMs,
+    DEFAULT_TIMEOUT_MS
+  );
+
+  const retryCount = validateRetryCount(
+    options.cliRetryCount ?? envRetryCount ?? file.retryCount,
+    DEFAULT_RETRY_COUNT
+  );
+
+  const retryDelayMs = validateNonNegativeMs(
+    options.cliRetryDelayMs ?? envRetryDelayMs ?? file.retryDelayMs,
+    DEFAULT_RETRY_DELAY_MS
+  );
+
+  return { speaker, speed, timeoutMs, retryCount, retryDelayMs };
 }
