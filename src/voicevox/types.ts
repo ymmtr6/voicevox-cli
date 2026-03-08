@@ -76,6 +76,14 @@ export interface Config {
   timeoutMs?: number;
   retryCount?: number;
   retryDelayMs?: number;
+  /**
+   * Emoji (or text) shown as a prefix in the status line output of `voicevox current-speaker`.
+   *
+   * Note: This option is intended to be configured by manually editing the
+   * config file and is not currently supported by the `voicevox config set`
+   * CLI command.
+   */
+  statusLineEmoji?: string;
 }
 
 export interface ConfigResult {

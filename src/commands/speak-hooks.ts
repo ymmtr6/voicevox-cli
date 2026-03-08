@@ -1,4 +1,4 @@
-import { readFile, appendFile, mkdir } from "fs/promises";
+import { appendFile, mkdir } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 import { runSpeak } from "./speak.js";
@@ -18,13 +18,6 @@ interface HookInput {
   notification_type?: string;
 }
 
-interface TranscriptEntry {
-  type: string;
-  message?: {
-    role: string;
-    content: string | Array<{ type: string; text?: string }>;
-  };
-}
 
 function readStdin(): Promise<string> {
   // TTY から直接実行された場合はハングを防ぐため空 JSON を即時返す
@@ -86,32 +79,6 @@ export function transformUrls(text: string): string {
   return text.replace(/https?:\/\/([^/\s]+)[^\s]*/g, "URL: $1");
 }
 
-async function extractFromTranscript(transcriptPath: string): Promise<string | null> {
-  try {
-    const raw = await readFile(transcriptPath, "utf-8");
-    const entries = raw
-      .split("\n")
-      .filter((line) => line.trim())
-      .map((line) => { try { return JSON.parse(line) as TranscriptEntry; } catch { return null; } })
-      .filter((e): e is TranscriptEntry => e !== null && e.type === "assistant" && e.message != null);
-    if (entries.length > 0) {
-      const last = entries[entries.length - 1];
-      let content = last.message!.content;
-      if (Array.isArray(content)) {
-        content = content
-          .filter((c) => c.type === "text")
-          .map((c) => c.text ?? "")
-          .join("\n");
-      }
-      if (typeof content === "string" && content.trim()) {
-        return firstLine(content);
-      }
-    }
-  } catch {
-    // transcript が読めない場合は null を返す
-  }
-  return null;
-}
 
 export async function runSpeakHooks(options: {
   host: string;
@@ -165,14 +132,8 @@ export async function runSpeakHooks(options: {
       text = firstLine(codexMessage);
     }
   } else {
-    // Stop / SubagentStop: last_assistant_message を優先、なければ transcript を解析
-    if (hookData.last_assistant_message?.trim()) {
-      text = firstLine(hookData.last_assistant_message);
-    } else if (hookData.transcript_path) {
-      const extracted = await extractFromTranscript(hookData.transcript_path);
-      if (extracted) text = extracted;
-    }
-    text = "セッション終了: " + text;
+    // Stop / SubagentStop: 固定文を読み上げる
+    text = "タスクが完了しました。";
   }
 
   await runSpeak(transformUrls(text), options.host, options.port, speaker, speed, timeoutMs, retryCount, retryDelayMs);
