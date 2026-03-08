@@ -1,6 +1,10 @@
-import { readFile } from "fs/promises";
+import { readFile, appendFile, mkdir } from "fs/promises";
+import { homedir } from "os";
+import { join } from "path";
 import { runSpeak } from "./speak.js";
 import { resolveConfig } from "../config.js";
+
+const NOTIFICATION_LOG = join(homedir(), ".config", "voicevox-cli", "notification-log.jsonl");
 
 interface HookInput {
   hook_event_name?: string;
@@ -37,6 +41,44 @@ function readStdin(): Promise<string> {
 
 function firstLine(text: string): string {
   return text.split("\n").find((line) => line.trim()) ?? text;
+}
+
+/** Notification メッセージを JSONL ログに追記して実際のパターンを収集する (VOICEVOX_DEBUG=1 時のみ) */
+async function collectNotificationMessage(hookData: HookInput): Promise<void> {
+  if (process.env.VOICEVOX_DEBUG !== "1") return;
+  if (hookData.hook_event_name !== "Notification" || !hookData.message?.trim()) return;
+  const entry = JSON.stringify({
+    timestamp: new Date().toISOString(),
+    notification_type: hookData.notification_type ?? null,
+    message: hookData.message,
+  });
+  try {
+    await mkdir(join(homedir(), ".config", "voicevox-cli"), { recursive: true });
+    await appendFile(NOTIFICATION_LOG, entry + "\n", "utf-8");
+  } catch {
+    // ログ失敗はサイレントに無視
+  }
+}
+
+function translateNotificationMessage(message: string, notificationType?: string): string {
+  // permission_prompt: "Claude needs your permission to use {Tool}"
+  if (notificationType === "permission_prompt") {
+    const toolMatch = message.match(/permission to use (.+)$/i);
+    const tool = toolMatch?.[1] ?? "ツール";
+    return `クロードが ${tool} 権限を要求しています`;
+  }
+
+  // idle_prompt: "Claude is waiting for your input"
+  if (notificationType === "idle_prompt") {
+    return "入力を待っています";
+  }
+
+  // auth_success
+  if (notificationType === "auth_success") {
+    return "認証が完了しました";
+  }
+
+  return message;
 }
 
 function transformUrls(text: string): string {
@@ -103,9 +145,12 @@ export async function runSpeakHooks(options: {
   let text = options.fallback;
 
   if (eventName === "Notification") {
-    // Notification hook: message フィールドを直接使用
+    void collectNotificationMessage(hookData);
     if (hookData.message?.trim()) {
-      text = firstLine(hookData.message);
+      text = translateNotificationMessage(
+        firstLine(hookData.message),
+        hookData.notification_type
+      );
     }
   } else if (hookData.type === "agent-turn-complete") {
     // Codex notify: last-assistant-message (kebab-case)
