@@ -39,7 +39,7 @@ function readStdin(): Promise<string> {
   });
 }
 
-function firstLine(text: string): string {
+export function firstLine(text: string): string {
   return text.split("\n").find((line) => line.trim()) ?? text;
 }
 
@@ -60,7 +60,7 @@ async function collectNotificationMessage(hookData: HookInput): Promise<void> {
   }
 }
 
-function translateNotificationMessage(message: string, notificationType?: string): string {
+export function translateNotificationMessage(message: string, notificationType?: string): string {
   // permission_prompt: "Claude needs your permission to use {Tool}"
   if (notificationType === "permission_prompt") {
     const toolMatch = message.match(/permission to use (.+)$/i);
@@ -81,7 +81,7 @@ function translateNotificationMessage(message: string, notificationType?: string
   return message;
 }
 
-function transformUrls(text: string): string {
+export function transformUrls(text: string): string {
   // https://github.com/foo/bar → URL: github.com
   return text.replace(/https?:\/\/([^/\s]+)[^\s]*/g, "URL: $1");
 }
