@@ -1,19 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { VoiceVoxClient } from "./client.js";
 
-// Mock fetch globally
+// Mock fetch (stubbed in beforeEach)
 const mockFetch = vi.fn();
-vi.stubGlobal("fetch", mockFetch);
 
 describe("VoiceVoxClient", () => {
   let client: VoiceVoxClient;
 
   beforeEach(() => {
+    vi.stubGlobal("fetch", mockFetch);
     client = new VoiceVoxClient({ host: "localhost", port: 50021 });
     mockFetch.mockReset();
   });
 
   afterEach(() => {
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
 
