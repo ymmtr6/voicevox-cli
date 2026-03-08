@@ -132,8 +132,11 @@ export async function runSpeakHooks(options: {
       text = firstLine(codexMessage);
     }
   } else {
-    // Stop / SubagentStop: 固定文を読み上げる
-    text = "タスクが完了しました。";
+    // Stop / SubagentStop: last_assistant_message を優先
+    if (hookData.last_assistant_message?.trim()) {
+      text = firstLine(hookData.last_assistant_message);
+    }
+    text = "タスクが完了しました。" + text;
   }
 
   await runSpeak(transformUrls(text), options.host, options.port, speaker, speed, timeoutMs, retryCount, retryDelayMs);

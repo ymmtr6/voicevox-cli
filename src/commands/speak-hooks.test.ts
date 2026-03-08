@@ -1,9 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   firstLine,
   transformUrls,
   translateNotificationMessage,
+  runSpeakHooks,
 } from "./speak-hooks.js";
+
+vi.mock("./speak.js", () => ({
+  runSpeak: vi.fn(),
+}));
+
+vi.mock("../config.js", () => ({
+  resolveConfig: vi.fn().mockResolvedValue({
+    speaker: 1,
+    speed: 1.3,
+    timeoutMs: 5000,
+    retryCount: 3,
+    retryDelayMs: 1000,
+  }),
+}));
 
 describe("firstLine", () => {
   it("returns first non-empty line", () => {
@@ -114,5 +129,49 @@ describe("translateNotificationMessage", () => {
     it("returns original message when notification type is undefined", () => {
       expect(translateNotificationMessage("Some message")).toBe("Some message");
     });
+  });
+});
+
+describe("runSpeakHooks (Stop/SubagentStop)", () => {
+  const baseOptions = {
+    host: "localhost",
+    port: 50021,
+    fallback: "フォールバック",
+  };
+
+  it("prefixes last_assistant_message with タスクが完了しました。", async () => {
+    const { runSpeak } = await import("./speak.js");
+    const payload = JSON.stringify({
+      hook_event_name: "Stop",
+      last_assistant_message: "ファイルを修正しました",
+    });
+    await runSpeakHooks({ ...baseOptions, payload });
+    expect(runSpeak).toHaveBeenCalledWith(
+      "タスクが完了しました。ファイルを修正しました",
+      "localhost", 50021, 1, 1.3, 5000, 3, 1000,
+    );
+  });
+
+  it("uses fallback when last_assistant_message is absent", async () => {
+    const { runSpeak } = await import("./speak.js");
+    const payload = JSON.stringify({ hook_event_name: "Stop" });
+    await runSpeakHooks({ ...baseOptions, payload });
+    expect(runSpeak).toHaveBeenCalledWith(
+      "タスクが完了しました。フォールバック",
+      "localhost", 50021, 1, 1.3, 5000, 3, 1000,
+    );
+  });
+
+  it("uses firstLine of multi-line last_assistant_message", async () => {
+    const { runSpeak } = await import("./speak.js");
+    const payload = JSON.stringify({
+      hook_event_name: "SubagentStop",
+      last_assistant_message: "1行目\n2行目\n3行目",
+    });
+    await runSpeakHooks({ ...baseOptions, payload });
+    expect(runSpeak).toHaveBeenCalledWith(
+      "タスクが完了しました。1行目",
+      "localhost", 50021, 1, 1.3, 5000, 3, 1000,
+    );
   });
 });
