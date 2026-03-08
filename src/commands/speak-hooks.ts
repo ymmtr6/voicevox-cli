@@ -121,6 +121,7 @@ export async function runSpeakHooks(options: {
       const extracted = await extractFromTranscript(hookData.transcript_path);
       if (extracted) text = extracted;
     }
+    text = "セッション終了: " + text;
   }
 
   await runSpeak(transformUrls(text), options.host, options.port, speaker, speed);
