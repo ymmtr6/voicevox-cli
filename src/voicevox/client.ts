@@ -17,6 +17,34 @@ import {
 const execFileAsync = promisify(execFile);
 
 /**
+ * Returns the audio player command and arguments for the current platform.
+ * - macOS: afplay
+ * - Windows: PowerShell with System.Media.SoundPlayer
+ * - Linux: paplay (PulseAudio)
+ * - Other: returns null (unsupported)
+ */
+function getAudioPlayer(): { cmd: string; args: (path: string) => string[] } | null {
+  switch (process.platform) {
+    case "darwin":
+      return { cmd: "afplay", args: (p) => [p] };
+    case "win32":
+      return {
+        cmd: "powershell",
+        args: (p) => [
+          "-NoProfile",
+          "-Command",
+          "param([string]$p) $player = New-Object System.Media.SoundPlayer($p); $player.PlaySync()",
+          p,
+        ],
+      };
+    case "linux":
+      return { cmd: "paplay", args: (p) => [p] };
+    default:
+      return null;
+  }
+}
+
+/**
  * Validates and returns a valid timeout/delay value in milliseconds.
  * Returns default value if input is invalid (NaN, negative, or not finite).
  */
@@ -180,10 +208,26 @@ export class VoiceVoxClient {
     const tmpPath = join(tmpdir(), `voicevox_${Date.now()}.wav`);
     await writeFile(tmpPath, wavBuffer);
 
+    const player = getAudioPlayer();
+    if (!player) {
+      throw new Error(
+        `No audio player available for platform ${process.platform}. WAV file saved at: ${tmpPath}`
+      );
+    }
+
     try {
-      await execFileAsync("afplay", [tmpPath]);
-    } finally {
+      await execFileAsync(player.cmd, player.args(tmpPath));
       await unlink(tmpPath).catch(() => undefined);
+    } catch (error) {
+      // If player command not found, preserve file and throw with path info
+      if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new Error(
+          `Audio player '${player.cmd}' not found. WAV file saved at: ${tmpPath}`
+        );
+      }
+      // For other errors, clean up and rethrow
+      await unlink(tmpPath).catch(() => undefined);
+      throw error;
     }
   }
 }
