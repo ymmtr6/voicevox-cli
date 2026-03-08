@@ -97,6 +97,7 @@ export async function resolveConfig(options: {
   timeoutMs: number;
   retryCount: number;
   retryDelayMs: number;
+  statusLineEmoji: string | undefined;
 }> {
   const file = await readConfig();
 
@@ -144,5 +145,5 @@ export async function resolveConfig(options: {
     DEFAULT_RETRY_DELAY_MS
   );
 
-  return { speaker, speed, timeoutMs, retryCount, retryDelayMs };
+  return { speaker, speed, timeoutMs, retryCount, retryDelayMs, statusLineEmoji: file.statusLineEmoji };
 }
