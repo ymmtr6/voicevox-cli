@@ -1,4 +1,6 @@
-import { resolveConfig, readSpeakersCache, writeSpeakersCache } from "../config.js";
+import { resolveConfig, readSpeakersCache, writeSpeakersCache, readConfig } from "../config.js";
+
+const DEFAULT_STATUS_LINE_EMOJI = "🎙️";
 import { VoiceVoxClient } from "../voicevox/client.js";
 
 export async function resolveSpeakerName(
@@ -31,13 +33,14 @@ export async function runCurrentSpeaker(options: {
   port: number;
   json: boolean;
 }): Promise<void> {
-  const { speaker } = await resolveConfig({});
+  const [{ speaker }, config] = await Promise.all([resolveConfig({}), readConfig()]);
   const name = await resolveSpeakerName(speaker, options.host, options.port);
   const label = name ?? `Speaker ${speaker}`;
 
   if (options.json) {
     console.log(JSON.stringify({ status: "ok", speaker, name: label }));
   } else {
-    console.log(`💬 VOICEVOX:${label}`);
+    const emoji = config.statusLineEmoji ?? DEFAULT_STATUS_LINE_EMOJI;
+    console.log(`${emoji} VOICEVOX:${label}`);
   }
 }

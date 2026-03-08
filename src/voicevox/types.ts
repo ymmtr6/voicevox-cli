@@ -76,6 +76,7 @@ export interface Config {
   timeoutMs?: number;
   retryCount?: number;
   retryDelayMs?: number;
+  statusLineEmoji?: string;
 }
 
 export interface ConfigResult {
