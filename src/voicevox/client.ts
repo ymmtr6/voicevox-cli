@@ -17,6 +17,29 @@ import {
 const execFileAsync = promisify(execFile);
 
 /**
+ * Returns the audio player command and arguments for the current platform.
+ * - macOS: afplay
+ * - Windows: PowerShell with Media.SoundPlayer
+ * - Linux: paplay (PulseAudio) or aplay (ALSA)
+ */
+function getAudioPlayer(): { cmd: string; args: (path: string) => string[] } | null {
+  switch (process.platform) {
+    case "darwin":
+      return { cmd: "afplay", args: (p) => [p] };
+    case "win32":
+      return {
+        cmd: "powershell",
+        args: (p) => ["-c", `(New-Object Media.SoundPlayer '${p}').PlaySync()`],
+      };
+    case "linux":
+      // Try paplay (PulseAudio) first, fallback to aplay (ALSA)
+      return { cmd: "paplay", args: (p) => [p] };
+    default:
+      return null;
+  }
+}
+
+/**
  * Validates and returns a valid timeout/delay value in milliseconds.
  * Returns default value if input is invalid (NaN, negative, or not finite).
  */
@@ -180,8 +203,16 @@ export class VoiceVoxClient {
     const tmpPath = join(tmpdir(), `voicevox_${Date.now()}.wav`);
     await writeFile(tmpPath, wavBuffer);
 
+    const player = getAudioPlayer();
+    if (!player) {
+      // Fallback: print path and don't delete the file
+      console.error(`No audio player available for platform ${process.platform}`);
+      console.error(`WAV file saved at: ${tmpPath}`);
+      return;
+    }
+
     try {
-      await execFileAsync("afplay", [tmpPath]);
+      await execFileAsync(player.cmd, player.args(tmpPath));
     } finally {
       await unlink(tmpPath).catch(() => undefined);
     }
