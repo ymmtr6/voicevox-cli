@@ -42,6 +42,9 @@ export interface Mora {
 export interface VoiceVoxClientOptions {
   host: string;
   port: number;
+  timeoutMs?: number;
+  retryCount?: number;
+  retryDelayMs?: number;
 }
 
 export interface TestResult {
@@ -70,6 +73,9 @@ export interface Config {
   speaker?: number;
   speed?: number;
   speakerPool?: number[];
+  timeoutMs?: number;
+  retryCount?: number;
+  retryDelayMs?: number;
 }
 
 export interface ConfigResult {

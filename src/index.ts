@@ -35,12 +35,14 @@ program
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .option("-s, --speaker <id>", "話者ID")
   .option("--speed <speed>", "話速 (例: 1.3)")
+  .option("--timeout <ms>", "タイムアウト (ミリ秒)")
   .action(async (text, options) => {
-    const { speaker, speed } = await resolveConfig({
+    const { speaker, speed, timeoutMs, retryCount, retryDelayMs } = await resolveConfig({
       cliSpeaker: options.speaker !== undefined ? Number(options.speaker) : undefined,
       cliSpeed: options.speed !== undefined ? Number(options.speed) : undefined,
+      cliTimeoutMs: options.timeout !== undefined ? Number(options.timeout) : undefined,
     });
-    await runSpeak(text, options.host, Number(options.port), speaker, speed);
+    await runSpeak(text, options.host, Number(options.port), speaker, speed, timeoutMs, retryCount, retryDelayMs);
   });
 
 program
@@ -100,6 +102,7 @@ program
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .option("-s, --speaker <id>", "話者ID")
   .option("--speed <speed>", "話速 (例: 1.3)")
+  .option("--timeout <ms>", "タイムアウト (ミリ秒)")
   .option("--fallback <text>", "transcript がない場合のメッセージ", "クロードの作業が完了しました")
   .action(async (payload, options) => {
     await runSpeakHooks({
@@ -107,6 +110,7 @@ program
       port: Number(options.port),
       speaker: options.speaker !== undefined ? Number(options.speaker) : undefined,
       speed: options.speed !== undefined ? Number(options.speed) : undefined,
+      timeoutMs: options.timeout !== undefined ? Number(options.timeout) : undefined,
       fallback: options.fallback,
       payload,
     });
@@ -125,7 +129,7 @@ config
 
 config
   .command("set <key> <value>")
-  .description("設定を変更します (key: speaker, speed)")
+  .description("設定を変更します (key: speaker, speed, timeoutMs, retryCount, retryDelayMs)")
   .action(async (key, value) => {
     await runConfigSet(key, value);
   });

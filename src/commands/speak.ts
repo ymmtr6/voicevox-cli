@@ -7,9 +7,12 @@ export async function runSpeak(
   host: string,
   port: number,
   speaker: number,
-  speed: number
+  speed: number,
+  timeoutMs?: number,
+  retryCount?: number,
+  retryDelayMs?: number
 ): Promise<void> {
-  const client = new VoiceVoxClient({ host, port });
+  const client = new VoiceVoxClient({ host, port, timeoutMs, retryCount, retryDelayMs });
   const result: SpeakResult = { status: "ok", speaker, speed, text };
 
   try {

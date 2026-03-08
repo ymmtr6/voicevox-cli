@@ -118,6 +118,7 @@ export async function runSpeakHooks(options: {
   port: number;
   speaker?: number;
   speed?: number;
+  timeoutMs?: number;
   fallback: string;
   payload?: string;
 }): Promise<void> {
@@ -136,9 +137,10 @@ export async function runSpeakHooks(options: {
     process.exit(0);
   }
 
-  const { speaker, speed } = await resolveConfig({
+  const { speaker, speed, timeoutMs, retryCount, retryDelayMs } = await resolveConfig({
     cliSpeaker: options.speaker,
     cliSpeed: options.speed,
+    cliTimeoutMs: options.timeoutMs,
   });
 
   const eventName = hookData.hook_event_name;
@@ -169,5 +171,5 @@ export async function runSpeakHooks(options: {
     text = "セッション終了: " + text;
   }
 
-  await runSpeak(transformUrls(text), options.host, options.port, speaker, speed);
+  await runSpeak(transformUrls(text), options.host, options.port, speaker, speed, timeoutMs, retryCount, retryDelayMs);
 }

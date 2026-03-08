@@ -30,10 +30,10 @@ export async function runConfigSet(key: string, value: string): Promise<void> {
     return;
   }
 
-  if (key !== "speaker" && key !== "speed") {
+  if (key !== "speaker" && key !== "speed" && key !== "timeoutMs" && key !== "retryCount" && key !== "retryDelayMs") {
     const result: ConfigResult = {
       status: "error",
-      message: `Invalid key: "${key}". Valid keys are: speaker, speed, speaker-pool`,
+      message: `Invalid key: "${key}". Valid keys are: speaker, speed, speaker-pool, timeoutMs, retryCount, retryDelayMs`,
     };
     console.log(JSON.stringify(result, null, 2));
     process.exit(1);
