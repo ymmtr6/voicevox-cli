@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, resolve } from "node:path";
 import { Command } from "commander";
 import { runTest } from "./commands/test.js";
 import { runSpeak, runSpeakers } from "./commands/speak.js";
@@ -9,6 +12,10 @@ import { runCurrentSpeaker } from "./commands/current-speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
 import { resolveConfig } from "./config.js";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(resolve(__dirname, "..", "package.json"), "utf-8"));
+
 const DEFAULT_HOST = "localhost";
 const DEFAULT_PORT = 50021;
 
@@ -17,7 +24,7 @@ const program = new Command();
 program
   .name("voicevox-cli")
   .description("VoiceVox API CLI - ローカルのVoiceVoxエンジンを操作するツール")
-  .version("1.0.0");
+  .version(pkg.version);
 
 program
   .command("test")
