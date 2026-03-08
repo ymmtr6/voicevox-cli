@@ -49,6 +49,29 @@ export async function runConfigSet(key: string, value: string): Promise<void> {
     process.exit(1);
   }
 
+  // Additional validation for timeout/retry settings
+  if (key === "timeoutMs" || key === "retryDelayMs") {
+    if (!Number.isFinite(num) || num < 0) {
+      const result: ConfigResult = {
+        status: "error",
+        message: `Invalid value for ${key}: "${value}". Must be a non-negative number`,
+      };
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(1);
+    }
+  }
+
+  if (key === "retryCount") {
+    if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      const result: ConfigResult = {
+        status: "error",
+        message: `Invalid value for retryCount: "${value}". Must be a non-negative integer`,
+      };
+      console.log(JSON.stringify(result, null, 2));
+      process.exit(1);
+    }
+  }
+
   const updated = { ...current, [key]: num };
   await writeConfig(updated);
 

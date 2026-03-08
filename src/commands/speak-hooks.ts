@@ -119,6 +119,8 @@ export async function runSpeakHooks(options: {
   speaker?: number;
   speed?: number;
   timeoutMs?: number;
+  retryCount?: number;
+  retryDelayMs?: number;
   fallback: string;
   payload?: string;
 }): Promise<void> {
@@ -141,6 +143,8 @@ export async function runSpeakHooks(options: {
     cliSpeaker: options.speaker,
     cliSpeed: options.speed,
     cliTimeoutMs: options.timeoutMs,
+    cliRetryCount: options.retryCount,
+    cliRetryDelayMs: options.retryDelayMs,
   });
 
   const eventName = hookData.hook_event_name;
