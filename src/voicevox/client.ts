@@ -19,8 +19,9 @@ const execFileAsync = promisify(execFile);
 /**
  * Returns the audio player command and arguments for the current platform.
  * - macOS: afplay
- * - Windows: PowerShell with Media.SoundPlayer
- * - Linux: paplay (PulseAudio) or aplay (ALSA)
+ * - Windows: PowerShell with System.Media.SoundPlayer
+ * - Linux: paplay (PulseAudio)
+ * - Other: returns null (unsupported)
  */
 function getAudioPlayer(): { cmd: string; args: (path: string) => string[] } | null {
   switch (process.platform) {
@@ -29,10 +30,14 @@ function getAudioPlayer(): { cmd: string; args: (path: string) => string[] } | n
     case "win32":
       return {
         cmd: "powershell",
-        args: (p) => ["-c", `(New-Object Media.SoundPlayer '${p}').PlaySync()`],
+        args: (p) => [
+          "-NoProfile",
+          "-Command",
+          "param([string]$p) $player = New-Object System.Media.SoundPlayer($p); $player.PlaySync()",
+          p,
+        ],
       };
     case "linux":
-      // Try paplay (PulseAudio) first, fallback to aplay (ALSA)
       return { cmd: "paplay", args: (p) => [p] };
     default:
       return null;
@@ -205,16 +210,24 @@ export class VoiceVoxClient {
 
     const player = getAudioPlayer();
     if (!player) {
-      // Fallback: print path and don't delete the file
-      console.error(`No audio player available for platform ${process.platform}`);
-      console.error(`WAV file saved at: ${tmpPath}`);
-      return;
+      throw new Error(
+        `No audio player available for platform ${process.platform}. WAV file saved at: ${tmpPath}`
+      );
     }
 
     try {
       await execFileAsync(player.cmd, player.args(tmpPath));
-    } finally {
       await unlink(tmpPath).catch(() => undefined);
+    } catch (error) {
+      // If player command not found, preserve file and throw with path info
+      if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new Error(
+          `Audio player '${player.cmd}' not found. WAV file saved at: ${tmpPath}`
+        );
+      }
+      // For other errors, clean up and rethrow
+      await unlink(tmpPath).catch(() => undefined);
+      throw error;
     }
   }
 }
