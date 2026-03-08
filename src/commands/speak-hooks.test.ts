@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   firstLine,
   transformUrls,
@@ -139,6 +139,10 @@ describe("runSpeakHooks (Stop/SubagentStop)", () => {
     fallback: "フォールバック",
   };
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it("prefixes last_assistant_message with タスクが完了しました。", async () => {
     const { runSpeak } = await import("./speak.js");
     const payload = JSON.stringify({
@@ -152,12 +156,12 @@ describe("runSpeakHooks (Stop/SubagentStop)", () => {
     );
   });
 
-  it("uses fallback when last_assistant_message is absent", async () => {
+  it("uses fixed message when last_assistant_message is absent", async () => {
     const { runSpeak } = await import("./speak.js");
     const payload = JSON.stringify({ hook_event_name: "Stop" });
     await runSpeakHooks({ ...baseOptions, payload });
     expect(runSpeak).toHaveBeenCalledWith(
-      "タスクが完了しました。フォールバック",
+      "タスクが完了しました。",
       "localhost", 50021, 1, 1.3, 5000, 3, 1000,
     );
   });
