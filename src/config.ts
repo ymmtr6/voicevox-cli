@@ -44,7 +44,7 @@ export const DEFAULT_RETRY_DELAY_MS = 1000;
  * Validates and returns a valid timeout/delay value in milliseconds.
  * Returns default value if input is invalid (NaN, negative, or not finite).
  */
-function validateNonNegativeMs(
+export function validateNonNegativeMs(
   value: number | undefined,
   defaultValue: number
 ): number {
@@ -57,7 +57,7 @@ function validateNonNegativeMs(
  * Validates and returns a valid retry count (non-negative integer).
  * Returns default value if input is invalid.
  */
-function validateRetryCount(
+export function validateRetryCount(
   value: number | undefined,
   defaultValue: number
 ): number {

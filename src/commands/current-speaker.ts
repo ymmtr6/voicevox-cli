@@ -1,7 +1,7 @@
 import { resolveConfig, readSpeakersCache, writeSpeakersCache } from "../config.js";
 import { VoiceVoxClient } from "../voicevox/client.js";
 
-async function resolveSpeakerName(
+export async function resolveSpeakerName(
   speakerId: number,
   host: string,
   port: number
