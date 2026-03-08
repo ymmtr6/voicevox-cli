@@ -2,11 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { resolveSpeakerName } from "./current-speaker.js";
 import * as config from "../config.js";
 
-// Mock dependencies
-vi.mock("../config.js", () => ({
-  readSpeakersCache: vi.fn(),
-  writeSpeakersCache: vi.fn(),
-}));
+// Mock dependencies - use importActual to preserve other exports
+vi.mock("../config.js", async () => {
+  const actual = await vi.importActual<typeof import("../config.js")>("../config.js");
+  return {
+    ...actual,
+    readSpeakersCache: vi.fn(),
+    writeSpeakersCache: vi.fn(),
+  };
+});
 
 vi.mock("../voicevox/client.js", () => ({
   VoiceVoxClient: vi.fn(),
@@ -49,7 +53,7 @@ describe("resolveSpeakerName", () => {
   it("returns undefined when cache is null and API fails", async () => {
     mockReadSpeakersCache.mockResolvedValueOnce(null);
 
-    // VoiceVoxClient mock throws on getSpeakers
+    // VoiceVoxClient mock throws on construction or getSpeakers
     const { VoiceVoxClient } = await import("../voicevox/client.js");
     vi.mocked(VoiceVoxClient).mockImplementationOnce(() => {
       throw new Error("Connection refused");
