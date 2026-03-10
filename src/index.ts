@@ -149,4 +149,11 @@ config
     await runConfigSet(key, value);
   });
 
+program
+  .command("version")
+  .description("バージョンを表示します")
+  .action(() => {
+    console.log(pkg.version);
+  });
+
 program.parse(process.argv);
