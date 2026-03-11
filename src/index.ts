@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { runTest } from "./commands/test.js";
 import { runSpeak, runSpeakers } from "./commands/speak.js";
 import { runMcpServer } from "./commands/mcp-server.js";
@@ -200,11 +200,15 @@ program
   .command("install")
   .description("Claude Code スキルと MCP サーバー設定をインストールします")
   .option("--skills", "スキルファイルをインストールする")
-  .option("--scope <scope>", "インストールスコープ (project または user)", "project")
+  .addOption(
+    new Option("--scope <scope>", "インストールスコープ")
+      .choices(["project", "user"])
+      .default("project")
+  )
   .action(async (options) => {
     await runInstall({
       skills: options.skills ?? false,
-      scope: options.scope as "project" | "user",
+      scope: options.scope,
     });
   });
 

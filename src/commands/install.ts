@@ -72,13 +72,20 @@ function configureMcpServer(settingsPath: string): boolean {
   let settings: Record<string, unknown> = {};
   if (existsSync(settingsPath)) {
     try {
-      settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+      const parsed = JSON.parse(readFileSync(settingsPath, "utf-8"));
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        settings = parsed as Record<string, unknown>;
+      }
     } catch {
       // ignore parse errors
     }
   }
 
-  const mcpServers = (settings.mcpServers ?? {}) as Record<string, unknown>;
+  const rawMcpServers = settings.mcpServers;
+  const mcpServers: Record<string, unknown> =
+    rawMcpServers && typeof rawMcpServers === "object" && !Array.isArray(rawMcpServers)
+      ? (rawMcpServers as Record<string, unknown>)
+      : {};
   // 既に設定済みならスキップ
   if (mcpServers.voicevox) {
     return false;
