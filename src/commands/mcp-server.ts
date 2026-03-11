@@ -36,13 +36,11 @@ export async function runMcpServer(host: string, port: number): Promise<void> {
             },
             speaker: {
               type: "number",
-              description: "話者ID（デフォルト: 1）",
-              default: 1,
+              description: "話者ID（省略時は環境変数 VOICEVOX_SPEAKER、設定ファイル、デフォルト値1の順で解決）",
             },
             speed: {
               type: "number",
-              description: "話速（デフォルト: 1.3）",
-              default: 1.3,
+              description: "話速（省略時は環境変数 VOICEVOX_SPEED、設定ファイル、デフォルト値1.3の順で解決）",
             },
           },
           required: ["text"],

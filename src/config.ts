@@ -66,6 +66,19 @@ export function validateRetryCount(
   return Math.floor(value);
 }
 
+/**
+ * Validates and returns a valid finite number.
+ * Returns default value if input is invalid (NaN, Infinity, or undefined).
+ */
+export function validateFinite(
+  value: number | undefined,
+  defaultValue: number
+): number {
+  if (value === undefined) return defaultValue;
+  if (!Number.isFinite(value)) return defaultValue;
+  return value;
+}
+
 function getConfigPath(): string {
   return join(homedir(), ".config", "voicevox-cli", "config.json");
 }
@@ -101,47 +114,46 @@ export async function resolveConfig(options: {
 }> {
   const file = await readConfig();
 
-  const envSpeaker = process.env.VOICEVOX_SPEAKER
+  // Parse environment variables (may result in NaN for invalid values)
+  const rawEnvSpeaker = process.env.VOICEVOX_SPEAKER
     ? Number(process.env.VOICEVOX_SPEAKER)
     : undefined;
-  const envSpeed = process.env.VOICEVOX_SPEED
+  const rawEnvSpeed = process.env.VOICEVOX_SPEED
     ? Number(process.env.VOICEVOX_SPEED)
     : undefined;
-  const envTimeoutMs = process.env.VOICEVOX_TIMEOUT_MS
+  const rawEnvTimeoutMs = process.env.VOICEVOX_TIMEOUT_MS
     ? Number(process.env.VOICEVOX_TIMEOUT_MS)
     : undefined;
-  const envRetryCount = process.env.VOICEVOX_RETRY_COUNT
+  const rawEnvRetryCount = process.env.VOICEVOX_RETRY_COUNT
     ? Number(process.env.VOICEVOX_RETRY_COUNT)
     : undefined;
-  const envRetryDelayMs = process.env.VOICEVOX_RETRY_DELAY_MS
+  const rawEnvRetryDelayMs = process.env.VOICEVOX_RETRY_DELAY_MS
     ? Number(process.env.VOICEVOX_RETRY_DELAY_MS)
     : undefined;
 
-  const speaker =
-    options.cliSpeaker ??
-    envSpeaker ??
-    file.speaker ??
-    DEFAULT_SPEAKER;
+  // Validate all values with appropriate validators
+  const speaker = validateFinite(
+    options.cliSpeaker ?? rawEnvSpeaker ?? file.speaker,
+    DEFAULT_SPEAKER
+  );
 
-  const speed =
-    options.cliSpeed ??
-    envSpeed ??
-    file.speed ??
-    DEFAULT_SPEED;
+  const speed = validateFinite(
+    options.cliSpeed ?? rawEnvSpeed ?? file.speed,
+    DEFAULT_SPEED
+  );
 
-  // Apply validation for timeout/retry settings
   const timeoutMs = validateNonNegativeMs(
-    options.cliTimeoutMs ?? envTimeoutMs ?? file.timeoutMs,
+    options.cliTimeoutMs ?? rawEnvTimeoutMs ?? file.timeoutMs,
     DEFAULT_TIMEOUT_MS
   );
 
   const retryCount = validateRetryCount(
-    options.cliRetryCount ?? envRetryCount ?? file.retryCount,
+    options.cliRetryCount ?? rawEnvRetryCount ?? file.retryCount,
     DEFAULT_RETRY_COUNT
   );
 
   const retryDelayMs = validateNonNegativeMs(
-    options.cliRetryDelayMs ?? envRetryDelayMs ?? file.retryDelayMs,
+    options.cliRetryDelayMs ?? rawEnvRetryDelayMs ?? file.retryDelayMs,
     DEFAULT_RETRY_DELAY_MS
   );
 
