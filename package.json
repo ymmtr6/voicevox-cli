@@ -1,6 +1,6 @@
 {
   "name": "voicevox-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "VoiceVox API CLI tool for Claude Code",
   "type": "module",
   "main": "dist/index.js",
