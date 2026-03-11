@@ -16,6 +16,29 @@ interface HookInput {
   // Notification hook fields
   message?: string;
   notification_type?: string;
+  // UserPromptSubmit fields
+  user_message?: string;
+  // PreToolUse / PostToolUse / PostToolUseFailure fields
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  tool_result?: unknown;
+  error_message?: string;
+  // SubagentStart / SubagentStop fields
+  agent_type?: string;
+  agent_description?: string;
+  // TaskCompleted fields
+  task_id?: string;
+  task_description?: string;
+  // WorktreeCreate / WorktreeRemove fields
+  worktree_path?: string;
+  worktree_name?: string;
+  // PermissionRequest fields
+  permission_type?: string;
+  requested_tool?: string;
+  // ConfigChange fields
+  config_file?: string;
+  // TeammateIdle fields
+  teammate_name?: string;
 }
 
 
@@ -79,6 +102,113 @@ export function transformUrls(text: string): string {
   return text.replace(/https?:\/\/([^/\s]+)[^\s]*/g, "URL: $1");
 }
 
+/** 各Hookイベントに対応する読み上げテキストを生成 */
+function getTextForHookEvent(eventName: string | undefined, hookData: HookInput, fallback: string): string {
+  if (!eventName) {
+    return fallback;
+  }
+
+  switch (eventName) {
+    case "Notification":
+      if (hookData.message?.trim()) {
+        return translateNotificationMessage(
+          firstLine(hookData.message),
+          hookData.notification_type
+        );
+      }
+      return "通知がありました";
+
+    case "Stop":
+    case "SubagentStop":
+      if (hookData.last_assistant_message?.trim()) {
+        return "タスクが完了しました。" + firstLine(hookData.last_assistant_message);
+      }
+      return "タスクが完了しました。";
+
+    case "SessionStart":
+      return "セッションを開始しました";
+
+    case "SessionEnd":
+      return "セッションを終了します";
+
+    case "UserPromptSubmit":
+      if (hookData.user_message?.trim()) {
+        return "受信: " + firstLine(hookData.user_message);
+      }
+      return "メッセージを受信しました";
+
+    case "PreToolUse":
+      if (hookData.tool_name) {
+        return `${hookData.tool_name}を実行します`;
+      }
+      return "ツールを実行します";
+
+    case "PostToolUse":
+      // 成功時は静かに（ノイズ削減）
+      return "";
+
+    case "PostToolUseFailure":
+      if (hookData.tool_name && hookData.error_message) {
+        return `${hookData.tool_name}でエラーが発生しました。${firstLine(hookData.error_message)}`;
+      }
+      if (hookData.tool_name) {
+        return `${hookData.tool_name}でエラーが発生しました`;
+      }
+      return "ツールの実行に失敗しました";
+
+    case "PermissionRequest":
+      if (hookData.requested_tool) {
+        return `${hookData.requested_tool}の権限を要求しています`;
+      }
+      return "権限を要求しています";
+
+    case "SubagentStart":
+      if (hookData.agent_description) {
+        return `サブエージェントを起動: ${firstLine(hookData.agent_description)}`;
+      }
+      if (hookData.agent_type) {
+        return `${hookData.agent_type}エージェントを起動します`;
+      }
+      return "サブエージェントを起動します";
+
+    case "TeammateIdle":
+      if (hookData.teammate_name) {
+        return `${hookData.teammate_name}が待機中です`;
+      }
+      return "チームメイトが待機中です";
+
+    case "TaskCompleted":
+      if (hookData.task_description) {
+        return `タスク完了: ${firstLine(hookData.task_description)}`;
+      }
+      return "タスクが完了しました";
+
+    case "ConfigChange":
+      if (hookData.config_file) {
+        return `設定を変更しました: ${hookData.config_file}`;
+      }
+      return "設定を変更しました";
+
+    case "WorktreeCreate":
+      if (hookData.worktree_name) {
+        return `ワークツリーを作成しました: ${hookData.worktree_name}`;
+      }
+      return "ワークツリーを作成しました";
+
+    case "WorktreeRemove":
+      if (hookData.worktree_name) {
+        return `ワークツリーを削除しました: ${hookData.worktree_name}`;
+      }
+      return "ワークツリーを削除しました";
+
+    case "PreCompact":
+      return "コンテキストを圧縮します";
+
+    default:
+      return fallback;
+  }
+}
+
 
 export async function runSpeakHooks(options: {
   host: string;
@@ -115,29 +245,29 @@ export async function runSpeakHooks(options: {
   });
 
   const eventName = hookData.hook_event_name;
-  let text = options.fallback;
 
+  // Notification hook: ログ収集
   if (eventName === "Notification") {
     void collectNotificationMessage(hookData);
-    if (hookData.message?.trim()) {
-      text = translateNotificationMessage(
-        firstLine(hookData.message),
-        hookData.notification_type
-      );
-    }
-  } else if (hookData.type === "agent-turn-complete") {
+  }
+
+  let text: string;
+
+  if (hookData.type === "agent-turn-complete") {
     // Codex notify: last-assistant-message (kebab-case)
     const codexMessage = hookData["last-assistant-message"];
     if (codexMessage?.trim()) {
       text = firstLine(codexMessage);
-    }
-  } else if (eventName === "Stop" || eventName === "SubagentStop") {
-    // Stop / SubagentStop: last_assistant_message があれば prefix 付きで読み上げ
-    if (hookData.last_assistant_message?.trim()) {
-      text = "タスクが完了しました。" + firstLine(hookData.last_assistant_message);
     } else {
-      text = "タスクが完了しました。";
+      text = options.fallback;
     }
+  } else {
+    text = getTextForHookEvent(eventName, hookData, options.fallback);
+  }
+
+  // 空文字の場合は読み上げをスキップ（ノイズ削減）
+  if (!text.trim()) {
+    return;
   }
 
   await runSpeak(transformUrls(text), options.host, options.port, speaker, speed, timeoutMs, retryCount, retryDelayMs);
