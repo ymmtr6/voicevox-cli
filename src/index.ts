@@ -2,7 +2,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
-import { Command } from "commander";
+import { Command, Option } from "commander";
 import { runTest } from "./commands/test.js";
 import { runSpeak, runSpeakers } from "./commands/speak.js";
 import { runMcpServer } from "./commands/mcp-server.js";
@@ -11,6 +11,7 @@ import { runPickSpeaker } from "./commands/pick-speaker.js";
 import { runCurrentSpeaker } from "./commands/current-speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
 import { runSetupHooks } from "./commands/setup-hooks.js";
+import { runInstall } from "./commands/install.js";
 import { resolveConfig } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -192,6 +193,24 @@ program
       scope: options.scope as "project" | "user",
       events,
       dryRun: options.dryRun,
+    });
+  });
+
+program
+  .command("install")
+  .description("Claude Code スキルや MCP サーバー設定をインストールします")
+  .option("--skills", "スキルファイルをインストールする")
+  .option("--mcp", "MCP サーバー設定を settings.json に追加する")
+  .addOption(
+    new Option("--scope <scope>", "インストールスコープ")
+      .choices(["project", "user"])
+      .default("project")
+  )
+  .action(async (options) => {
+    await runInstall({
+      skills: options.skills ?? false,
+      mcp: options.mcp ?? false,
+      scope: options.scope,
     });
   });
 
