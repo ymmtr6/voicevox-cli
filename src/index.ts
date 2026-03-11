@@ -198,8 +198,9 @@ program
 
 program
   .command("install")
-  .description("Claude Code スキルと MCP サーバー設定をインストールします")
+  .description("Claude Code スキルや MCP サーバー設定をインストールします")
   .option("--skills", "スキルファイルをインストールする")
+  .option("--mcp", "MCP サーバー設定を settings.json に追加する")
   .addOption(
     new Option("--scope <scope>", "インストールスコープ")
       .choices(["project", "user"])
@@ -208,6 +209,7 @@ program
   .action(async (options) => {
     await runInstall({
       skills: options.skills ?? false,
+      mcp: options.mcp ?? false,
       scope: options.scope,
     });
   });

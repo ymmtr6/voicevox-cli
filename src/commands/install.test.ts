@@ -15,7 +15,6 @@ describe("install command", () => {
     originalCwd = process.cwd();
     process.chdir(testDir);
 
-    // process.exit をモックして実際には終了しないようにする
     originalExit = process.exit;
     process.exit = vi.fn() as never;
   });
@@ -50,16 +49,25 @@ describe("install command", () => {
     expect(existsSync(join(refsDir, "speaker-customization.md"))).toBe(true);
   });
 
-  it("--skills で project スコープにインストールできる", async () => {
-    await runInstall({ skills: true, scope: "project" });
+  it("--skills で project スコープにスキルのみインストールできる", async () => {
+    await runInstall({ skills: true, mcp: false, scope: "project" });
 
-    // skills がコピーされている
     const skillsDir = join(testDir, ".claude", "skills", "voicevox-cli");
     expect(existsSync(skillsDir)).toBe(true);
     expect(existsSync(join(skillsDir, "SKILL.md"))).toBe(true);
     expect(existsSync(join(skillsDir, "references", "hooks-setup.md"))).toBe(true);
-    expect(existsSync(join(skillsDir, "references", "mcp-integration.md"))).toBe(true);
-    expect(existsSync(join(skillsDir, "references", "speaker-customization.md"))).toBe(true);
+
+    // settings.json は作成されない
+    const settingsPath = join(testDir, ".claude", "settings.json");
+    expect(existsSync(settingsPath)).toBe(false);
+  });
+
+  it("--mcp で MCP 設定のみインストールできる", async () => {
+    await runInstall({ skills: false, mcp: true, scope: "project" });
+
+    // skills はコピーされない
+    const skillsDir = join(testDir, ".claude", "skills", "voicevox-cli");
+    expect(existsSync(skillsDir)).toBe(false);
 
     // settings.json に MCP 設定が追加されている
     const settingsPath = join(testDir, ".claude", "settings.json");
@@ -71,19 +79,32 @@ describe("install command", () => {
     });
   });
 
-  it("既存の settings.json にマージされる", async () => {
-    // 既存の settings.json を作成
+  it("--skills --mcp で両方インストールできる", async () => {
+    await runInstall({ skills: true, mcp: true, scope: "project" });
+
+    const skillsDir = join(testDir, ".claude", "skills", "voicevox-cli");
+    expect(existsSync(skillsDir)).toBe(true);
+    expect(existsSync(join(skillsDir, "SKILL.md"))).toBe(true);
+
+    const settingsPath = join(testDir, ".claude", "settings.json");
+    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    expect(settings.mcpServers.voicevox).toEqual({
+      command: "voicevox-cli",
+      args: ["mcp-server"],
+    });
+  });
+
+  it("既存の settings.json に MCP 設定がマージされる", async () => {
     const claudeDir = join(testDir, ".claude");
     mkdirSync(claudeDir, { recursive: true });
-    const settingsPath = join(claudeDir, "settings.json");
-    writeFileSync(settingsPath, JSON.stringify({
+    writeFileSync(join(claudeDir, "settings.json"), JSON.stringify({
       permissions: { allow: ["Bash(git:*)"] },
       hooks: { Stop: [] },
     }));
 
-    await runInstall({ skills: true, scope: "project" });
+    await runInstall({ skills: false, mcp: true, scope: "project" });
 
-    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
     expect(settings.permissions).toEqual({ allow: ["Bash(git:*)"] });
     expect(settings.hooks).toEqual({ Stop: [] });
     expect(settings.mcpServers.voicevox).toEqual({
@@ -95,8 +116,7 @@ describe("install command", () => {
   it("既存の MCP 設定がある場合は上書きしない", async () => {
     const claudeDir = join(testDir, ".claude");
     mkdirSync(claudeDir, { recursive: true });
-    const settingsPath = join(claudeDir, "settings.json");
-    writeFileSync(settingsPath, JSON.stringify({
+    writeFileSync(join(claudeDir, "settings.json"), JSON.stringify({
       mcpServers: {
         voicevox: {
           command: "voicevox-cli",
@@ -105,17 +125,17 @@ describe("install command", () => {
       },
     }));
 
-    await runInstall({ skills: true, scope: "project" });
+    await runInstall({ skills: false, mcp: true, scope: "project" });
 
-    const settings = JSON.parse(readFileSync(settingsPath, "utf-8"));
+    const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
     expect(settings.mcpServers.voicevox).toEqual({
       command: "voicevox-cli",
       args: ["mcp-server", "--host", "custom"],
     });
   });
 
-  it("--skills なしではエラーになる", async () => {
-    await runInstall({ skills: false, scope: "project" });
+  it("--skills も --mcp もなしではエラーになる", async () => {
+    await runInstall({ skills: false, mcp: false, scope: "project" });
     expect(process.exit).toHaveBeenCalledWith(1);
   });
 
@@ -124,7 +144,7 @@ describe("install command", () => {
     mkdirSync(claudeDir, { recursive: true });
     writeFileSync(join(claudeDir, "settings.json"), "invalid json");
 
-    await runInstall({ skills: true, scope: "project" });
+    await runInstall({ skills: false, mcp: true, scope: "project" });
 
     const settings = JSON.parse(readFileSync(join(claudeDir, "settings.json"), "utf-8"));
     expect(settings.mcpServers.voicevox).toEqual({

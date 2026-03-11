@@ -8,16 +8,6 @@ const __dirname = dirname(__filename);
 
 export type InstallScope = "project" | "user";
 
-interface InstallResult {
-  status: string;
-  scope: InstallScope;
-  skillsDir: string;
-  files: string[];
-  mcpConfigured: boolean;
-  mcpSettingsPath: string;
-  message: string;
-}
-
 /**
  * パッケージに同梱された skills ディレクトリのパスを返す
  */
@@ -106,61 +96,69 @@ function configureMcpServer(settingsPath: string): boolean {
 }
 
 /**
- * skills をインストール
+ * skills / MCP をインストール
  */
 export async function runInstall(options: {
   skills: boolean;
+  mcp: boolean;
   scope: InstallScope;
 }): Promise<void> {
-  if (!options.skills) {
+  if (!options.skills && !options.mcp) {
     console.log(JSON.stringify({
       status: "error",
-      message: "使用法: voicevox-cli install --skills [--scope project|user]",
+      message: "使用法: voicevox-cli install --skills|--mcp [--scope project|user]",
     }, null, 2));
     process.exit(1);
   }
 
-  const sourceDir = getSourceSkillsDir();
-  if (!existsSync(sourceDir)) {
-    console.log(JSON.stringify({
-      status: "error",
-      message: `Skills ディレクトリが見つかりません: ${sourceDir}`,
-    }, null, 2));
-    process.exit(1);
-  }
-
-  const sourceSkillDir = join(sourceDir, "voicevox-cli");
-  if (!existsSync(sourceSkillDir)) {
-    console.log(JSON.stringify({
-      status: "error",
-      message: `Skills ソースが見つかりません: ${sourceSkillDir}`,
-    }, null, 2));
-    process.exit(1);
-  }
-
-  const targetBaseDir = getTargetSkillsDir(options.scope);
-  const targetDir = join(targetBaseDir, "voicevox-cli");
-
-  // ターゲットディレクトリを作成してコピー
-  mkdirSync(targetDir, { recursive: true });
-  cpSync(sourceSkillDir, targetDir, { recursive: true });
-
-  // コピーされたファイル一覧を取得
-  const files = listFilesRecursive(targetDir);
-
-  // MCP サーバー設定を追加
-  const settingsPath = getSettingsPath(options.scope);
-  const mcpConfigured = configureMcpServer(settingsPath);
-
-  const result: InstallResult = {
+  const results: Record<string, unknown> = {
     status: "ok",
     scope: options.scope,
-    skillsDir: targetDir,
-    files,
-    mcpConfigured,
-    mcpSettingsPath: settingsPath,
-    message: `Skills installed to ${targetDir} (${files.length} files)`,
   };
 
-  console.log(JSON.stringify(result, null, 2));
+  // --skills: スキルファイルをコピー
+  if (options.skills) {
+    const sourceDir = getSourceSkillsDir();
+    if (!existsSync(sourceDir)) {
+      console.log(JSON.stringify({
+        status: "error",
+        message: `Skills ディレクトリが見つかりません: ${sourceDir}`,
+      }, null, 2));
+      process.exit(1);
+    }
+
+    const sourceSkillDir = join(sourceDir, "voicevox-cli");
+    if (!existsSync(sourceSkillDir)) {
+      console.log(JSON.stringify({
+        status: "error",
+        message: `Skills ソースが見つかりません: ${sourceSkillDir}`,
+      }, null, 2));
+      process.exit(1);
+    }
+
+    const targetBaseDir = getTargetSkillsDir(options.scope);
+    const targetDir = join(targetBaseDir, "voicevox-cli");
+
+    mkdirSync(targetDir, { recursive: true });
+    cpSync(sourceSkillDir, targetDir, { recursive: true });
+
+    const files = listFilesRecursive(targetDir);
+    results.skillsDir = targetDir;
+    results.files = files;
+  }
+
+  // --mcp: MCP サーバー設定を settings.json に追加
+  if (options.mcp) {
+    const settingsPath = getSettingsPath(options.scope);
+    const mcpConfigured = configureMcpServer(settingsPath);
+    results.mcpConfigured = mcpConfigured;
+    results.mcpSettingsPath = settingsPath;
+  }
+
+  const parts: string[] = [];
+  if (options.skills) parts.push("skills");
+  if (options.mcp) parts.push("mcp");
+  results.message = `Installed: ${parts.join(", ")}`;
+
+  console.log(JSON.stringify(results, null, 2));
 }
