@@ -17,27 +17,28 @@ interface HookInput {
   message?: string;
   notification_type?: string;
   // UserPromptSubmit fields
-  user_message?: string;
+  prompt?: string;
   // PreToolUse / PostToolUse / PostToolUseFailure fields
   tool_name?: string;
   tool_input?: Record<string, unknown>;
-  tool_result?: unknown;
+  tool_response?: unknown;
+  // PostToolUseFailure用（フィールド名は実際のペイロードで検証が必要）
   error_message?: string;
-  // SubagentStart / SubagentStop fields
+  // SubagentStart / SubagentStop fields (フィールド名は実際のペイロードで検証が必要)
   agent_type?: string;
   agent_description?: string;
-  // TaskCompleted fields
+  // TaskCompleted fields (フィールド名は実際のペイロードで検証が必要)
   task_id?: string;
   task_description?: string;
-  // WorktreeCreate / WorktreeRemove fields
+  // WorktreeCreate / WorktreeRemove fields (フィールド名は実際のペイロードで検証が必要)
   worktree_path?: string;
   worktree_name?: string;
-  // PermissionRequest fields
+  // PermissionRequest fields (フィールド名は実際のペイロードで検証が必要)
   permission_type?: string;
   requested_tool?: string;
-  // ConfigChange fields
+  // ConfigChange fields (フィールド名は実際のペイロードで検証が必要)
   config_file?: string;
-  // TeammateIdle fields
+  // TeammateIdle fields (フィールド名は実際のペイロードで検証が必要)
   teammate_name?: string;
 }
 
@@ -132,8 +133,8 @@ function getTextForHookEvent(eventName: string | undefined, hookData: HookInput,
       return "セッションを終了します";
 
     case "UserPromptSubmit":
-      if (hookData.user_message?.trim()) {
-        return "受信: " + firstLine(hookData.user_message);
+      if (hookData.prompt?.trim()) {
+        return "受信: " + firstLine(hookData.prompt);
       }
       return "メッセージを受信しました";
 
