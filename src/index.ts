@@ -11,6 +11,7 @@ import { runPickSpeaker } from "./commands/pick-speaker.js";
 import { runCurrentSpeaker } from "./commands/current-speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
 import { runSetupHooks } from "./commands/setup-hooks.js";
+import { runInstall } from "./commands/install.js";
 import { resolveConfig } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -192,6 +193,18 @@ program
       scope: options.scope as "project" | "user",
       events,
       dryRun: options.dryRun,
+    });
+  });
+
+program
+  .command("install")
+  .description("Claude Code スキルと MCP サーバー設定をインストールします")
+  .option("--skills", "スキルファイルをインストールする")
+  .option("--scope <scope>", "インストールスコープ (project または user)", "project")
+  .action(async (options) => {
+    await runInstall({
+      skills: options.skills ?? false,
+      scope: options.scope as "project" | "user",
     });
   });
 
