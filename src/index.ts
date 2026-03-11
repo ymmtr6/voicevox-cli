@@ -10,6 +10,7 @@ import { runConfigGet, runConfigSet } from "./commands/config.js";
 import { runPickSpeaker } from "./commands/pick-speaker.js";
 import { runCurrentSpeaker } from "./commands/current-speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
+import { runSetupHooks } from "./commands/setup-hooks.js";
 import { resolveConfig } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -147,6 +148,51 @@ config
   .description("設定を変更します (key: speaker, speaker-pool, speed, timeoutMs, retryCount, retryDelayMs)")
   .action(async (key, value) => {
     await runConfigSet(key, value);
+  });
+
+program
+  .command("setup-hooks")
+  .description("Claude Code hooks に voicevox-cli speak-hooks を設定します")
+  .option("--scope <scope>", "設定スコープ (project または user)", "project")
+  .option("--events <events>", "カンマ区切りでイベントを指定 (例: Stop,SubagentStop,Notification)")
+  .option("--all", "全17イベントを設定する", false)
+  .option("--dry-run", "設定をファイルに書き込まず出力のみ", false)
+  .action(async (options) => {
+    const defaultEvents = ["Stop", "SubagentStop", "Notification"];
+    const allEvents = [
+      "SessionStart",
+      "SessionEnd",
+      "UserPromptSubmit",
+      "PreToolUse",
+      "PostToolUse",
+      "PostToolUseFailure",
+      "Notification",
+      "SubagentStart",
+      "SubagentStop",
+      "Stop",
+      "TeammateIdle",
+      "TaskCompleted",
+      "ConfigChange",
+      "WorktreeCreate",
+      "WorktreeRemove",
+      "PreCompact",
+      "PermissionRequest",
+    ];
+
+    let events: string[];
+    if (options.all) {
+      events = allEvents;
+    } else if (options.events) {
+      events = options.events.split(",").map((e: string) => e.trim());
+    } else {
+      events = defaultEvents;
+    }
+
+    await runSetupHooks({
+      scope: options.scope as "project" | "user",
+      events,
+      dryRun: options.dryRun,
+    });
   });
 
 program.parse(process.argv);
