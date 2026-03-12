@@ -12,6 +12,13 @@ Claude Code からの MCP サーバー利用、および Stop hooks による音
 ## インストール
 
 ```bash
+brew tap ymmtr6/voicevox-cli
+brew install voicevox-cli
+```
+
+or
+
+```bash
 git clone https://github.com/yourname/voicevox-cli
 cd voicevox-cli
 npm install
