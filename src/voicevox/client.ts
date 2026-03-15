@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { writeFile, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -205,7 +206,7 @@ export class VoiceVoxClient {
 
     const wavBuffer = await this.synthesis(query, speakerId);
 
-    const tmpPath = join(tmpdir(), `voicevox_${Date.now()}.wav`);
+    const tmpPath = join(tmpdir(), `voicevox_${randomBytes(8).toString("hex")}.wav`);
     await writeFile(tmpPath, wavBuffer);
 
     const player = getAudioPlayer();
