@@ -1,8 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { VoiceVoxClient } from "./client.js";
+import { writeFile, unlink } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Mock fetch (stubbed in beforeEach)
 const mockFetch = vi.fn();
+
+// Mock fs/promises
+vi.mock("node:fs/promises", () => ({
+  writeFile: vi.fn(),
+  unlink: vi.fn(),
+}));
+
+// Mock child_process
+vi.mock("node:child_process", () => ({
+  execFile: vi.fn(),
+}));
+
+// Need to import execFile after mocking
+import { execFile } from "node:child_process";
+
+const mockExecFile = vi.mocked(execFile);
+const mockWriteFile = vi.mocked(writeFile);
+const mockUnlink = vi.mocked(unlink);
 
 describe("VoiceVoxClient", () => {
   let client: VoiceVoxClient;
@@ -201,6 +222,93 @@ describe("VoiceVoxClient", () => {
 
       await expect(retryClient.getVersion()).rejects.toThrow("HTTP 500");
       expect(mockFetch).toHaveBeenCalledTimes(1); // No retry on HTTP error
+    });
+  });
+
+  describe("speak", () => {
+    const mockQuery = {
+      accent_phrases: [],
+      speedScale: 1.0,
+      pitchScale: 0.0,
+      intonationScale: 1.0,
+      volumeScale: 1.0,
+      prePhonemeLength: 0.1,
+      postPhonemeLength: 0.1,
+      outputSamplingRate: 24000,
+      outputStereo: false,
+      kana: "",
+    };
+
+    beforeEach(() => {
+      mockWriteFile.mockReset();
+      mockUnlink.mockReset();
+      mockExecFile.mockReset();
+    });
+
+    it("generates tmp file with random hex filename", async () => {
+      const mockBuffer = new ArrayBuffer(8);
+      mockFetch
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => mockQuery,
+        })
+        .mockResolvedValueOnce({
+          ok: true,
+          arrayBuffer: async () => mockBuffer,
+        });
+
+      mockWriteFile.mockResolvedValue(undefined);
+      mockExecFile.mockImplementation(
+        (_cmd: string, _args: string[], callback: (error: null, stdout: string, stderr: string) => void) => {
+          callback(null, "", "");
+          return true as unknown as never;
+        }
+      );
+      mockUnlink.mockResolvedValue(undefined);
+
+      await client.speak("テスト", 1, 1.0);
+
+      // Verify writeFile was called with a path matching voicevox_[16 hex chars].wav
+      expect(mockWriteFile).toHaveBeenCalledTimes(1);
+      const writtenPath = mockWriteFile.mock.calls[0][0] as string;
+      const filename = writtenPath.split("/").pop() as string;
+
+      // Pattern: voicevox_[16 hex characters].wav
+      expect(filename).toMatch(/^voicevox_[0-9a-f]{16}\.wav$/);
+    });
+
+    it("generates unique filenames on successive calls", async () => {
+      const mockBuffer = new ArrayBuffer(8);
+      mockFetch
+        .mockResolvedValue({
+          ok: true,
+          json: async () => mockQuery,
+          arrayBuffer: async () => mockBuffer,
+        });
+
+      mockWriteFile.mockResolvedValue(undefined);
+      mockExecFile.mockImplementation(
+        (_cmd: string, _args: string[], callback: (error: null, stdout: string, stderr: string) => void) => {
+          callback(null, "", "");
+          return true as unknown as never;
+        }
+      );
+      mockUnlink.mockResolvedValue(undefined);
+
+      await client.speak("テスト1", 1, 1.0);
+      await client.speak("テスト2", 1, 1.0);
+
+      // Get the two written paths
+      const path1 = mockWriteFile.mock.calls[0][0] as string;
+      const path2 = mockWriteFile.mock.calls[1][0] as string;
+
+      // Verify both match the pattern and are unique
+      const filename1 = path1.split("/").pop() as string;
+      const filename2 = path2.split("/").pop() as string;
+
+      expect(filename1).toMatch(/^voicevox_[0-9a-f]{16}\.wav$/);
+      expect(filename2).toMatch(/^voicevox_[0-9a-f]{16}\.wav$/);
+      expect(filename1).not.toBe(filename2);
     });
   });
 });
