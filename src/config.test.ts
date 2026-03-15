@@ -137,11 +137,38 @@ describe("resolveConfig", () => {
       expect(result.speaker).toBe(10);
     });
 
-    it("uses default speaker when env is invalid", async () => {
+    it("exits with error when env is invalid", async () => {
+      const mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+        throw new Error(`process.exit(${code})`);
+      });
+      const mockConsoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
       process.env.VOICEVOX_SPEAKER = "invalid";
-      const result = await resolveConfig({});
-      // Falls back to config file or default (1)
-      expect(result.speaker).toBeGreaterThanOrEqual(1);
+
+      await expect(resolveConfig({})).rejects.toThrow("process.exit(1)");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("VOICEVOX_SPEAKER must be a non-negative integer")
+      );
+
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
+    });
+
+    it("exits with error when env is a decimal", async () => {
+      const mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+        throw new Error(`process.exit(${code})`);
+      });
+      const mockConsoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      process.env.VOICEVOX_SPEAKER = "1.5";
+
+      await expect(resolveConfig({})).rejects.toThrow("process.exit(1)");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("VOICEVOX_SPEAKER must be a non-negative integer")
+      );
+
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
     });
 
     it("falls back to config or default when env not set", async () => {
@@ -165,11 +192,55 @@ describe("resolveConfig", () => {
       expect(result.speed).toBe(2.0);
     });
 
-    it("uses default speed when env is invalid", async () => {
+    it("exits with error when env is invalid", async () => {
+      const mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+        throw new Error(`process.exit(${code})`);
+      });
+      const mockConsoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
       process.env.VOICEVOX_SPEED = "invalid";
-      const result = await resolveConfig({});
-      // Falls back to config file or default (1.3)
-      expect(result.speed).toBeGreaterThanOrEqual(1.0);
+
+      await expect(resolveConfig({})).rejects.toThrow("process.exit(1)");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("VOICEVOX_SPEED must be a positive number")
+      );
+
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
+    });
+
+    it("exits with error when env is Infinity", async () => {
+      const mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+        throw new Error(`process.exit(${code})`);
+      });
+      const mockConsoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      process.env.VOICEVOX_SPEED = "Infinity";
+
+      await expect(resolveConfig({})).rejects.toThrow("process.exit(1)");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("VOICEVOX_SPEED must be a positive number")
+      );
+
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
+    });
+
+    it("exits with error when env is zero", async () => {
+      const mockExit = vi.spyOn(process, "exit").mockImplementation((code) => {
+        throw new Error(`process.exit(${code})`);
+      });
+      const mockConsoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      process.env.VOICEVOX_SPEED = "0";
+
+      await expect(resolveConfig({})).rejects.toThrow("process.exit(1)");
+      expect(mockConsoleError).toHaveBeenCalledWith(
+        expect.stringContaining("VOICEVOX_SPEED must be a positive number")
+      );
+
+      mockExit.mockRestore();
+      mockConsoleError.mockRestore();
     });
 
     it("falls back to config or default when env not set", async () => {

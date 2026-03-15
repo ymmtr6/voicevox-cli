@@ -42,6 +42,57 @@ export const DEFAULT_RETRY_COUNT = 0;
 export const DEFAULT_RETRY_DELAY_MS = 1000;
 
 /**
+ * Parses a non-negative integer from a string value.
+ * Exits with error message if the value is invalid (NaN, negative, or not an integer).
+ */
+function parseNonNegativeInt(
+  value: string | undefined,
+  envName: string
+): number | undefined {
+  if (!value) return undefined;
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0) {
+    console.error(`Error: ${envName} must be a non-negative integer, got: ${value}`);
+    process.exit(1);
+  }
+  return n;
+}
+
+/**
+ * Parses a positive number from a string value.
+ * Exits with error message if the value is invalid (NaN, Infinity, zero, or negative).
+ */
+function parsePositiveNumber(
+  value: string | undefined,
+  envName: string
+): number | undefined {
+  if (!value) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) {
+    console.error(`Error: ${envName} must be a positive number, got: ${value}`);
+    process.exit(1);
+  }
+  return n;
+}
+
+/**
+ * Parses a non-negative number from a string value.
+ * Exits with error message if the value is invalid (NaN, Infinity, or negative).
+ */
+function parseNonNegativeNumber(
+  value: string | undefined,
+  envName: string
+): number | undefined {
+  if (!value) return undefined;
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) {
+    console.error(`Error: ${envName} must be a non-negative number, got: ${value}`);
+    process.exit(1);
+  }
+  return n;
+}
+
+/**
  * Validates and returns a valid timeout/delay value in milliseconds.
  * Returns default value if input is invalid (NaN, negative, or not finite).
  */
@@ -140,22 +191,12 @@ export async function resolveConfig(options: {
 }> {
   const file = await readConfig();
 
-  // Parse environment variables (may result in NaN for invalid values)
-  const rawEnvSpeaker = process.env.VOICEVOX_SPEAKER
-    ? Number(process.env.VOICEVOX_SPEAKER)
-    : undefined;
-  const rawEnvSpeed = process.env.VOICEVOX_SPEED
-    ? Number(process.env.VOICEVOX_SPEED)
-    : undefined;
-  const rawEnvTimeoutMs = process.env.VOICEVOX_TIMEOUT_MS
-    ? Number(process.env.VOICEVOX_TIMEOUT_MS)
-    : undefined;
-  const rawEnvRetryCount = process.env.VOICEVOX_RETRY_COUNT
-    ? Number(process.env.VOICEVOX_RETRY_COUNT)
-    : undefined;
-  const rawEnvRetryDelayMs = process.env.VOICEVOX_RETRY_DELAY_MS
-    ? Number(process.env.VOICEVOX_RETRY_DELAY_MS)
-    : undefined;
+  // Parse and validate environment variables
+  const envSpeaker = parseNonNegativeInt(process.env.VOICEVOX_SPEAKER, "VOICEVOX_SPEAKER");
+  const envSpeed = parsePositiveNumber(process.env.VOICEVOX_SPEED, "VOICEVOX_SPEED");
+  const envTimeoutMs = parseNonNegativeNumber(process.env.VOICEVOX_TIMEOUT_MS, "VOICEVOX_TIMEOUT_MS");
+  const envRetryCount = parseNonNegativeInt(process.env.VOICEVOX_RETRY_COUNT, "VOICEVOX_RETRY_COUNT");
+  const envRetryDelayMs = parseNonNegativeNumber(process.env.VOICEVOX_RETRY_DELAY_MS, "VOICEVOX_RETRY_DELAY_MS");
 
   // TTYごとの話者設定を取得（不正値は undefined として扱う）
   const tty = getCurrentTty();
@@ -169,27 +210,27 @@ export async function resolveConfig(options: {
   // Validate all values with appropriate validators
   // 優先順位: CLI > TTYごとの設定 > 環境変数 > グローバル設定 > デフォルト
   const speaker = validateFinite(
-    options.cliSpeaker ?? ttySpeaker ?? rawEnvSpeaker ?? file.speaker,
+    options.cliSpeaker ?? ttySpeaker ?? envSpeaker ?? file.speaker,
     DEFAULT_SPEAKER
   );
 
   const speed = validateFinite(
-    options.cliSpeed ?? rawEnvSpeed ?? file.speed,
+    options.cliSpeed ?? envSpeed ?? file.speed,
     DEFAULT_SPEED
   );
 
   const timeoutMs = validateNonNegativeMs(
-    options.cliTimeoutMs ?? rawEnvTimeoutMs ?? file.timeoutMs,
+    options.cliTimeoutMs ?? envTimeoutMs ?? file.timeoutMs,
     DEFAULT_TIMEOUT_MS
   );
 
   const retryCount = validateRetryCount(
-    options.cliRetryCount ?? rawEnvRetryCount ?? file.retryCount,
+    options.cliRetryCount ?? envRetryCount ?? file.retryCount,
     DEFAULT_RETRY_COUNT
   );
 
   const retryDelayMs = validateNonNegativeMs(
-    options.cliRetryDelayMs ?? rawEnvRetryDelayMs ?? file.retryDelayMs,
+    options.cliRetryDelayMs ?? envRetryDelayMs ?? file.retryDelayMs,
     DEFAULT_RETRY_DELAY_MS
   );
 
