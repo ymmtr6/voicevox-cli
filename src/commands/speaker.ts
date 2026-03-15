@@ -27,7 +27,7 @@ export async function runSpeaker(options: {
   const config = await readConfig();
   const tty = getCurrentTty();
   const currentSpeaker =
-    tty && config.speakerByTty?.[tty]
+    tty && config.speakerByTty?.[tty] !== undefined
       ? config.speakerByTty[tty]
       : config.speaker ?? 1;
 

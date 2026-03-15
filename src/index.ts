@@ -93,7 +93,7 @@ program
 
 program
   .command("speaker")
-  .description("TUIで話者を選択し、VOICEVOX_SPEAKER環境変数を設定する export 文を出力します (使い方: eval \"$(voicevox speaker)\")")
+  .description("TUIで話者を選択し、TTYごとのデフォルト話者として設定します")
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .action(async (options) => {
