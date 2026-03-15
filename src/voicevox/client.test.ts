@@ -258,12 +258,11 @@ describe("VoiceVoxClient", () => {
         });
 
       mockWriteFile.mockResolvedValue(undefined);
-      mockExecFile.mockImplementation(
-        (_cmd: string, _args: string[], callback: (error: null, stdout: string, stderr: string) => void) => {
-          callback(null, "", "");
-          return true as unknown as never;
-        }
-      );
+      mockExecFile.mockImplementation((...args: unknown[]) => {
+        const callback = args[args.length - 1] as (error: null, stdout: string, stderr: string) => void;
+        callback(null, "", "");
+        return true as unknown as never;
+      });
       mockUnlink.mockResolvedValue(undefined);
 
       await client.speak("テスト", 1, 1.0);
@@ -287,12 +286,11 @@ describe("VoiceVoxClient", () => {
         });
 
       mockWriteFile.mockResolvedValue(undefined);
-      mockExecFile.mockImplementation(
-        (_cmd: string, _args: string[], callback: (error: null, stdout: string, stderr: string) => void) => {
-          callback(null, "", "");
-          return true as unknown as never;
-        }
-      );
+      mockExecFile.mockImplementation((...args: unknown[]) => {
+        const callback = args[args.length - 1] as (error: null, stdout: string, stderr: string) => void;
+        callback(null, "", "");
+        return true as unknown as never;
+      });
       mockUnlink.mockResolvedValue(undefined);
 
       await client.speak("テスト1", 1, 1.0);
