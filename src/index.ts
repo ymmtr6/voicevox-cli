@@ -9,6 +9,7 @@ import { runMcpServer } from "./commands/mcp-server.js";
 import { runConfigGet, runConfigSet } from "./commands/config.js";
 import { runPickSpeaker } from "./commands/pick-speaker.js";
 import { runCurrentSpeaker } from "./commands/current-speaker.js";
+import { runSpeaker } from "./commands/speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
 import { runSetupHooks } from "./commands/setup-hooks.js";
 import { runInstall } from "./commands/install.js";
@@ -87,6 +88,18 @@ program
       host: options.host,
       port: Number(options.port),
       json: options.json,
+    });
+  });
+
+program
+  .command("speaker")
+  .description("TUIで話者を選択し、TTYごとのデフォルト話者として設定します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .action(async (options) => {
+    await runSpeaker({
+      host: options.host,
+      port: Number(options.port),
     });
   });
 

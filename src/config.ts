@@ -1,6 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
+import { execSync } from "node:child_process";
 import type { Config } from "./voicevox/types.js";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24時間
@@ -98,6 +99,31 @@ export async function writeConfig(config: Config): Promise<void> {
   await writeFile(path, JSON.stringify(config, null, 2));
 }
 
+// TTY名のキャッシュ（プロセス内で1回だけ判定）
+let cachedTty: string | null | undefined = undefined;
+
+/**
+ * 現在のTTY名を取得する（例: /dev/ttys001）
+ * TTYでない場合は null を返す
+ * 結果はモジュールスコープでメモ化され、プロセス内で1回だけ判定される
+ */
+export function getCurrentTty(): string | null {
+  if (cachedTty !== undefined) return cachedTty;
+  try {
+    // stdin は継承して TTY を検出、stdout/stderr はパイプで結果を取得
+    const tty = execSync("tty", { encoding: "utf-8", stdio: ["inherit", "pipe", "pipe"] }).trim();
+    if (tty === "not a tty") {
+      cachedTty = null;
+      return null;
+    }
+    cachedTty = tty;
+    return tty;
+  } catch {
+    cachedTty = null;
+    return null;
+  }
+}
+
 export async function resolveConfig(options: {
   cliSpeaker?: number;
   cliSpeed?: number;
@@ -131,9 +157,19 @@ export async function resolveConfig(options: {
     ? Number(process.env.VOICEVOX_RETRY_DELAY_MS)
     : undefined;
 
+  // TTYごとの話者設定を取得（不正値は undefined として扱う）
+  const tty = getCurrentTty();
+  const rawTtySpeaker = tty ? file.speakerByTty?.[tty] : undefined;
+  // 不正値（NaN、非有限数）の場合は undefined として扱い、次の優先順位へフォールバック
+  const ttySpeaker =
+    rawTtySpeaker !== undefined && Number.isFinite(rawTtySpeaker)
+      ? rawTtySpeaker
+      : undefined;
+
   // Validate all values with appropriate validators
+  // 優先順位: CLI > TTYごとの設定 > 環境変数 > グローバル設定 > デフォルト
   const speaker = validateFinite(
-    options.cliSpeaker ?? rawEnvSpeaker ?? file.speaker,
+    options.cliSpeaker ?? ttySpeaker ?? rawEnvSpeaker ?? file.speaker,
     DEFAULT_SPEAKER
   );
 

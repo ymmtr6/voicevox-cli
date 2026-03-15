@@ -77,6 +77,10 @@ export interface Config {
   retryCount?: number;
   retryDelayMs?: number;
   /**
+   * TTYごとの話者設定。キーはTTY名（例: /dev/ttys001）
+   */
+  speakerByTty?: Record<string, number>;
+  /**
    * Emoji (or text) shown as a prefix in the status line output of `voicevox current-speaker`.
    *
    * Note: This option is intended to be configured by manually editing the
