@@ -60,7 +60,7 @@ function parseNonNegativeInt(
 
 /**
  * Parses a positive number from a string value.
- * Exits with error message if the value is invalid (NaN, zero, or negative).
+ * Exits with error message if the value is invalid (NaN, Infinity, zero, or negative).
  */
 function parsePositiveNumber(
   value: string | undefined,
@@ -68,7 +68,7 @@ function parsePositiveNumber(
 ): number | undefined {
   if (!value) return undefined;
   const n = Number(value);
-  if (isNaN(n) || n <= 0) {
+  if (!Number.isFinite(n) || n <= 0) {
     console.error(`Error: ${envName} must be a positive number, got: ${value}`);
     process.exit(1);
   }
@@ -77,7 +77,7 @@ function parsePositiveNumber(
 
 /**
  * Parses a non-negative number from a string value.
- * Exits with error message if the value is invalid (NaN or negative).
+ * Exits with error message if the value is invalid (NaN, Infinity, or negative).
  */
 function parseNonNegativeNumber(
   value: string | undefined,
@@ -85,7 +85,7 @@ function parseNonNegativeNumber(
 ): number | undefined {
   if (!value) return undefined;
   const n = Number(value);
-  if (isNaN(n) || n < 0) {
+  if (!Number.isFinite(n) || n < 0) {
     console.error(`Error: ${envName} must be a non-negative number, got: ${value}`);
     process.exit(1);
   }
