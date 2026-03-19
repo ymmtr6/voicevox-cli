@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import type {
   AudioQuery,
+  Preset,
   Speaker,
   UserDictWord,
   VoiceVoxClientOptions,
@@ -284,6 +285,51 @@ export class VoiceVoxClient {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dictData),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+  }
+
+  async getPresets(): Promise<Preset[]> {
+    const res = await this.fetchWithRetry(`${this.baseUrl}/presets`);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    return res.json() as Promise<Preset[]>;
+  }
+
+  async addPreset(preset: Preset): Promise<number> {
+    const res = await this.fetchWithRetry(`${this.baseUrl}/add_preset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(preset),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<number>;
+  }
+
+  async updatePreset(preset: Preset): Promise<number> {
+    const res = await this.fetchWithRetry(`${this.baseUrl}/update_preset`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(preset),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<number>;
+  }
+
+  async deletePreset(id: number): Promise<void> {
+    const params = new URLSearchParams({ id: String(id) });
+    const res = await this.fetchWithRetry(`${this.baseUrl}/delete_preset?${params}`, {
+      method: "POST",
     });
     if (!res.ok) {
       const body = await res.text();

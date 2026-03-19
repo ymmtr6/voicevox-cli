@@ -21,6 +21,12 @@ import {
   runDictExport,
   runDictImport,
 } from "./commands/dict.js";
+import {
+  runPresetList,
+  runPresetAdd,
+  runPresetUpdate,
+  runPresetRemove,
+} from "./commands/preset.js";
 import type { WordType } from "./voicevox/types.js";
 import { resolveConfig } from "./config.js";
 
@@ -339,6 +345,93 @@ dict
   .option("--override", "重複エントリを上書きする", false)
   .action(async (file, options) => {
     await runDictImport(options.host, Number(options.port), file, options.override);
+  });
+
+const preset = program
+  .command("preset")
+  .description("プリセットを管理します");
+
+preset
+  .command("list")
+  .description("プリセット一覧を表示します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .option("--json", "JSON形式で出力する", false)
+  .action(async (options) => {
+    await runPresetList(options.host, Number(options.port), options.json);
+  });
+
+preset
+  .command("add <name>")
+  .description("プリセットを追加します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .requiredOption("--speaker-uuid <uuid>", "キャラクターのUUID")
+  .requiredOption("--style-id <id>", "スタイルID")
+  .option("--speed <n>", "話速", "1.0")
+  .option("--pitch <n>", "音高", "0.0")
+  .option("--intonation <n>", "抑揚", "1.0")
+  .option("--volume <n>", "音量", "1.0")
+  .option("--pre-phoneme <n>", "音声の前の無音時間", "0.1")
+  .option("--post-phoneme <n>", "音声の後の無音時間", "0.1")
+  .option("--pause-length <n>", "句読点などの無音時間")
+  .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
+  .action(async (name, options) => {
+    await runPresetAdd(options.host, Number(options.port), {
+      name,
+      speakerUuid: options.speakerUuid,
+      styleId: Number(options.styleId),
+      speedScale: Number(options.speed),
+      pitchScale: Number(options.pitch),
+      intonationScale: Number(options.intonation),
+      volumeScale: Number(options.volume),
+      prePhonemeLength: Number(options.prePhoneme),
+      postPhonemeLength: Number(options.postPhoneme),
+      pauseLength: options.pauseLength !== undefined ? Number(options.pauseLength) : undefined,
+      pauseLengthScale: options.pauseLengthScale !== undefined ? Number(options.pauseLengthScale) : undefined,
+    });
+  });
+
+preset
+  .command("update <id>")
+  .description("プリセットを更新します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .requiredOption("--name <name>", "プリセット名")
+  .requiredOption("--speaker-uuid <uuid>", "キャラクターのUUID")
+  .requiredOption("--style-id <id>", "スタイルID")
+  .option("--speed <n>", "話速", "1.0")
+  .option("--pitch <n>", "音高", "0.0")
+  .option("--intonation <n>", "抑揚", "1.0")
+  .option("--volume <n>", "音量", "1.0")
+  .option("--pre-phoneme <n>", "音声の前の無音時間", "0.1")
+  .option("--post-phoneme <n>", "音声の後の無音時間", "0.1")
+  .option("--pause-length <n>", "句読点などの無音時間")
+  .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
+  .action(async (id, options) => {
+    await runPresetUpdate(options.host, Number(options.port), {
+      id: Number(id),
+      name: options.name,
+      speakerUuid: options.speakerUuid,
+      styleId: Number(options.styleId),
+      speedScale: Number(options.speed),
+      pitchScale: Number(options.pitch),
+      intonationScale: Number(options.intonation),
+      volumeScale: Number(options.volume),
+      prePhonemeLength: Number(options.prePhoneme),
+      postPhonemeLength: Number(options.postPhoneme),
+      pauseLength: options.pauseLength !== undefined ? Number(options.pauseLength) : undefined,
+      pauseLengthScale: options.pauseLengthScale !== undefined ? Number(options.pauseLengthScale) : undefined,
+    });
+  });
+
+preset
+  .command("remove <id>")
+  .description("プリセットを削除します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .action(async (id, options) => {
+    await runPresetRemove(options.host, Number(options.port), Number(id));
   });
 
 program.parse(process.argv);

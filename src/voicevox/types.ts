@@ -132,3 +132,35 @@ export interface DictOperationResult {
   status: "ok" | "error";
   message?: string;
 }
+
+export interface Preset {
+  id: number;
+  name: string;
+  speaker_uuid: string;
+  style_id: number;
+  speedScale: number;
+  pitchScale: number;
+  intonationScale: number;
+  volumeScale: number;
+  prePhonemeLength: number;
+  postPhonemeLength: number;
+  pauseLength?: number;
+  pauseLengthScale?: number;
+}
+
+export interface PresetListResult {
+  status: "ok" | "error";
+  presets?: Preset[];
+  message?: string;
+}
+
+export interface PresetAddResult {
+  status: "ok" | "error";
+  id?: number;
+  message?: string;
+}
+
+export interface PresetOperationResult {
+  status: "ok" | "error";
+  message?: string;
+}
