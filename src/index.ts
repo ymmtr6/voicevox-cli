@@ -255,15 +255,29 @@ dict
   .description("単語を追加します")
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
-  .option("--word-type <type>", "品詞 (PROPER_NOUN, COMMON_NOUN, VERB, ADJECTIVE, SUFFIX)", "PROPER_NOUN")
+  .addOption(
+    new Option("--word-type <type>", "品詞")
+      .choices(["PROPER_NOUN", "COMMON_NOUN", "VERB", "ADJECTIVE", "SUFFIX"])
+      .default("PROPER_NOUN")
+  )
   .option("--priority <n>", "優先度 0-10", "5")
   .action(async (surface, pronunciation, accentType, options) => {
+    const priority = Number(options.priority);
+    if (!Number.isFinite(priority) || priority < 0 || priority > 10) {
+      console.error("エラー: --priority は 0〜10 の整数で指定してください。");
+      process.exit(1);
+    }
+    const accent = accentType !== undefined ? Number(accentType) : 0;
+    if (!Number.isFinite(accent) || accent < 0) {
+      console.error("エラー: accent_type は 0 以上の整数で指定してください。");
+      process.exit(1);
+    }
     await runDictAdd(options.host, Number(options.port), {
       surface,
       pronunciation,
-      accentType: accentType !== undefined ? Number(accentType) : 0,
+      accentType: accent,
       wordType: options.wordType as WordType,
-      priority: Number(options.priority),
+      priority,
     });
   });
 
@@ -272,15 +286,29 @@ dict
   .description("単語を更新します")
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
-  .option("--word-type <type>", "品詞 (PROPER_NOUN, COMMON_NOUN, VERB, ADJECTIVE, SUFFIX)", "PROPER_NOUN")
+  .addOption(
+    new Option("--word-type <type>", "品詞")
+      .choices(["PROPER_NOUN", "COMMON_NOUN", "VERB", "ADJECTIVE", "SUFFIX"])
+      .default("PROPER_NOUN")
+  )
   .option("--priority <n>", "優先度 0-10", "5")
   .action(async (wordUuid, surface, pronunciation, accentType, options) => {
+    const priority = Number(options.priority);
+    if (!Number.isFinite(priority) || priority < 0 || priority > 10) {
+      console.error("エラー: --priority は 0〜10 の整数で指定してください。");
+      process.exit(1);
+    }
+    const accent = accentType !== undefined ? Number(accentType) : 0;
+    if (!Number.isFinite(accent) || accent < 0) {
+      console.error("エラー: accent_type は 0 以上の整数で指定してください。");
+      process.exit(1);
+    }
     await runDictUpdate(options.host, Number(options.port), wordUuid, {
       surface,
       pronunciation,
-      accentType: accentType !== undefined ? Number(accentType) : 0,
+      accentType: accent,
       wordType: options.wordType as WordType,
-      priority: Number(options.priority),
+      priority,
     });
   });
 

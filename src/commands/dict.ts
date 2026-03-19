@@ -10,13 +10,10 @@ import type {
 
 export async function runDictList(host: string, port: number, json: boolean): Promise<void> {
   const client = new VoiceVoxClient({ host, port });
-  const result: DictListResult = { status: "ok" };
 
-  try {
-    const words = await client.getUserDict();
-    result.words = words;
-
-    if (!json) {
+  if (!json) {
+    try {
+      const words = await client.getUserDict();
       const entries = Object.entries(words);
       if (entries.length === 0) {
         console.log("登録されている単語はありません。");
@@ -25,8 +22,16 @@ export async function runDictList(host: string, port: number, json: boolean): Pr
       for (const [uuid, word] of entries) {
         console.log(`${uuid}\t${word.surface}\t${word.pronunciation}\tアクセント:${word.accent_type}\t優先度:${word.priority}`);
       }
-      return;
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : "Unknown error");
+      process.exit(1);
     }
+    return;
+  }
+
+  const result: DictListResult = { status: "ok" };
+  try {
+    result.words = await client.getUserDict();
   } catch (err) {
     result.status = "error";
     result.message = err instanceof Error ? err.message : "Unknown error";
@@ -138,11 +143,7 @@ export async function runDictExport(host: string, port: number, output?: string)
       console.log(json);
     }
   } catch (err) {
-    const result: DictOperationResult = {
-      status: "error",
-      message: err instanceof Error ? err.message : "Unknown error",
-    };
-    console.log(JSON.stringify(result, null, 2));
+    console.error(err instanceof Error ? err.message : "Unknown error");
     process.exit(1);
   }
 }

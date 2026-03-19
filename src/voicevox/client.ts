@@ -204,7 +204,8 @@ export class VoiceVoxClient {
   async getUserDict(): Promise<Record<string, UserDictWord>> {
     const res = await this.fetchWithRetry(`${this.baseUrl}/user_dict`);
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
     }
     return res.json() as Promise<Record<string, UserDictWord>>;
   }
