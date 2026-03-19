@@ -1,5 +1,6 @@
 import { VoiceVoxClient } from "../voicevox/client.js";
 import type {
+  NewPreset,
   Preset,
   PresetListResult,
   PresetAddResult,
@@ -58,8 +59,7 @@ export async function runPresetAdd(
   const result: PresetAddResult = { status: "ok" };
 
   try {
-    const preset: Preset = {
-      id: 0,
+    const newPreset: NewPreset = {
       name: params.name,
       speaker_uuid: params.speakerUuid,
       style_id: params.styleId,
@@ -71,12 +71,12 @@ export async function runPresetAdd(
       postPhonemeLength: params.postPhonemeLength,
     };
     if (params.pauseLength !== undefined) {
-      preset.pauseLength = params.pauseLength;
+      newPreset.pauseLength = params.pauseLength;
     }
     if (params.pauseLengthScale !== undefined) {
-      preset.pauseLengthScale = params.pauseLengthScale;
+      newPreset.pauseLengthScale = params.pauseLengthScale;
     }
-    const id = await client.addPreset(preset);
+    const id = await client.addPreset(newPreset);
     result.id = id;
   } catch (err) {
     result.status = "error";

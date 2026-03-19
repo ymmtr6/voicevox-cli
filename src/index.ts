@@ -37,6 +37,22 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, "..", "package.json"), "u
 const DEFAULT_HOST = "localhost";
 const DEFAULT_PORT = 50021;
 
+function requireFiniteNumber(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    console.error(`エラー: ${label} には有効な数値を指定してください。`);
+    process.exit(1);
+  }
+  return value;
+}
+
+function requirePositiveInt(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    console.error(`エラー: ${label} には 0 以上の整数を指定してください。`);
+    process.exit(1);
+  }
+  return value;
+}
+
 const program = new Command();
 
 program
@@ -377,18 +393,27 @@ preset
   .option("--pause-length <n>", "句読点などの無音時間")
   .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
   .action(async (name, options) => {
+    const styleId = requirePositiveInt(Number(options.styleId), "--style-id");
+    const speedScale = requireFiniteNumber(Number(options.speed), "--speed");
+    const pitchScale = requireFiniteNumber(Number(options.pitch), "--pitch");
+    const intonationScale = requireFiniteNumber(Number(options.intonation), "--intonation");
+    const volumeScale = requireFiniteNumber(Number(options.volume), "--volume");
+    const prePhonemeLength = requireFiniteNumber(Number(options.prePhoneme), "--pre-phoneme");
+    const postPhonemeLength = requireFiniteNumber(Number(options.postPhoneme), "--post-phoneme");
+    const pauseLength = options.pauseLength !== undefined ? requireFiniteNumber(Number(options.pauseLength), "--pause-length") : undefined;
+    const pauseLengthScale = options.pauseLengthScale !== undefined ? requireFiniteNumber(Number(options.pauseLengthScale), "--pause-length-scale") : undefined;
     await runPresetAdd(options.host, Number(options.port), {
       name,
       speakerUuid: options.speakerUuid,
-      styleId: Number(options.styleId),
-      speedScale: Number(options.speed),
-      pitchScale: Number(options.pitch),
-      intonationScale: Number(options.intonation),
-      volumeScale: Number(options.volume),
-      prePhonemeLength: Number(options.prePhoneme),
-      postPhonemeLength: Number(options.postPhoneme),
-      pauseLength: options.pauseLength !== undefined ? Number(options.pauseLength) : undefined,
-      pauseLengthScale: options.pauseLengthScale !== undefined ? Number(options.pauseLengthScale) : undefined,
+      styleId,
+      speedScale,
+      pitchScale,
+      intonationScale,
+      volumeScale,
+      prePhonemeLength,
+      postPhonemeLength,
+      pauseLength,
+      pauseLengthScale,
     });
   });
 
@@ -409,19 +434,29 @@ preset
   .option("--pause-length <n>", "句読点などの無音時間")
   .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
   .action(async (id, options) => {
+    const presetId = requirePositiveInt(Number(id), "id");
+    const styleId = requirePositiveInt(Number(options.styleId), "--style-id");
+    const speedScale = requireFiniteNumber(Number(options.speed), "--speed");
+    const pitchScale = requireFiniteNumber(Number(options.pitch), "--pitch");
+    const intonationScale = requireFiniteNumber(Number(options.intonation), "--intonation");
+    const volumeScale = requireFiniteNumber(Number(options.volume), "--volume");
+    const prePhonemeLength = requireFiniteNumber(Number(options.prePhoneme), "--pre-phoneme");
+    const postPhonemeLength = requireFiniteNumber(Number(options.postPhoneme), "--post-phoneme");
+    const pauseLength = options.pauseLength !== undefined ? requireFiniteNumber(Number(options.pauseLength), "--pause-length") : undefined;
+    const pauseLengthScale = options.pauseLengthScale !== undefined ? requireFiniteNumber(Number(options.pauseLengthScale), "--pause-length-scale") : undefined;
     await runPresetUpdate(options.host, Number(options.port), {
-      id: Number(id),
+      id: presetId,
       name: options.name,
       speakerUuid: options.speakerUuid,
-      styleId: Number(options.styleId),
-      speedScale: Number(options.speed),
-      pitchScale: Number(options.pitch),
-      intonationScale: Number(options.intonation),
-      volumeScale: Number(options.volume),
-      prePhonemeLength: Number(options.prePhoneme),
-      postPhonemeLength: Number(options.postPhoneme),
-      pauseLength: options.pauseLength !== undefined ? Number(options.pauseLength) : undefined,
-      pauseLengthScale: options.pauseLengthScale !== undefined ? Number(options.pauseLengthScale) : undefined,
+      styleId,
+      speedScale,
+      pitchScale,
+      intonationScale,
+      volumeScale,
+      prePhonemeLength,
+      postPhonemeLength,
+      pauseLength,
+      pauseLengthScale,
     });
   });
 
@@ -431,7 +466,8 @@ preset
   .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
   .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
   .action(async (id, options) => {
-    await runPresetRemove(options.host, Number(options.port), Number(id));
+    const presetId = requirePositiveInt(Number(id), "id");
+    await runPresetRemove(options.host, Number(options.port), presetId);
   });
 
 program.parse(process.argv);

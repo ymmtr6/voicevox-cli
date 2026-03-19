@@ -225,6 +225,166 @@ describe("VoiceVoxClient", () => {
     });
   });
 
+  describe("getPresets", () => {
+    it("returns presets array on success", async () => {
+      const mockPresets = [
+        {
+          id: 1,
+          name: "テスト",
+          speaker_uuid: "uuid-1",
+          style_id: 1,
+          speedScale: 1.0,
+          pitchScale: 0.0,
+          intonationScale: 1.0,
+          volumeScale: 1.0,
+          prePhonemeLength: 0.1,
+          postPhonemeLength: 0.1,
+        },
+      ];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockPresets,
+      });
+
+      const presets = await client.getPresets();
+      expect(presets).toEqual(mockPresets);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:50021/presets",
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
+      );
+    });
+
+    it("throws error on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      });
+
+      await expect(client.getPresets()).rejects.toThrow("HTTP 500");
+    });
+  });
+
+  describe("addPreset", () => {
+    it("returns preset ID on success", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => 42,
+      });
+
+      const id = await client.addPreset({
+        name: "テスト",
+        speaker_uuid: "uuid-1",
+        style_id: 1,
+        speedScale: 1.0,
+        pitchScale: 0.0,
+        intonationScale: 1.0,
+        volumeScale: 1.0,
+        prePhonemeLength: 0.1,
+        postPhonemeLength: 0.1,
+      });
+      expect(id).toBe(42);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:50021/add_preset",
+        expect.objectContaining({
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        })
+      );
+    });
+
+    it("throws error on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 422,
+        text: async () => "Validation Error",
+      });
+
+      await expect(client.addPreset({
+        name: "テスト",
+        speaker_uuid: "uuid-1",
+        style_id: 1,
+        speedScale: 1.0,
+        pitchScale: 0.0,
+        intonationScale: 1.0,
+        volumeScale: 1.0,
+        prePhonemeLength: 0.1,
+        postPhonemeLength: 0.1,
+      })).rejects.toThrow("HTTP 422");
+    });
+  });
+
+  describe("updatePreset", () => {
+    it("succeeds on valid request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => 1,
+      });
+
+      await expect(client.updatePreset({
+        id: 1,
+        name: "テスト",
+        speaker_uuid: "uuid-1",
+        style_id: 1,
+        speedScale: 1.5,
+        pitchScale: 0.0,
+        intonationScale: 1.0,
+        volumeScale: 1.0,
+        prePhonemeLength: 0.1,
+        postPhonemeLength: 0.1,
+      })).resolves.toBe(1);
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:50021/update_preset",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+
+    it("throws error on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => "Not Found",
+      });
+
+      await expect(client.updatePreset({
+        id: 999,
+        name: "テスト",
+        speaker_uuid: "uuid-1",
+        style_id: 1,
+        speedScale: 1.0,
+        pitchScale: 0.0,
+        intonationScale: 1.0,
+        volumeScale: 1.0,
+        prePhonemeLength: 0.1,
+        postPhonemeLength: 0.1,
+      })).rejects.toThrow("HTTP 404");
+    });
+  });
+
+  describe("deletePreset", () => {
+    it("succeeds on valid request", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+      });
+
+      await expect(client.deletePreset(1)).resolves.toBeUndefined();
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://localhost:50021/delete_preset?id=1",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+
+    it("throws error on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        text: async () => "Not Found",
+      });
+
+      await expect(client.deletePreset(999)).rejects.toThrow("HTTP 404");
+    });
+  });
+
   describe("speak", () => {
     const mockQuery = {
       accent_phrases: [],

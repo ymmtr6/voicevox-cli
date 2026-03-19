@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import type {
   AudioQuery,
+  NewPreset,
   Preset,
   Speaker,
   UserDictWord,
@@ -300,7 +301,7 @@ export class VoiceVoxClient {
     return res.json() as Promise<Preset[]>;
   }
 
-  async addPreset(preset: Preset): Promise<number> {
+  async addPreset(preset: NewPreset): Promise<number> {
     const res = await this.fetchWithRetry(`${this.baseUrl}/add_preset`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

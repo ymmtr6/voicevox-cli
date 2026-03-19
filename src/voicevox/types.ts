@@ -148,6 +148,8 @@ export interface Preset {
   pauseLengthScale?: number;
 }
 
+export type NewPreset = Omit<Preset, "id">;
+
 export interface PresetListResult {
   status: "ok" | "error";
   presets?: Preset[];
