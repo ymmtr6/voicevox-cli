@@ -13,6 +13,15 @@ import { runSpeaker } from "./commands/speaker.js";
 import { runSpeakHooks } from "./commands/speak-hooks.js";
 import { runSetupHooks } from "./commands/setup-hooks.js";
 import { runInstall } from "./commands/install.js";
+import {
+  runDictList,
+  runDictAdd,
+  runDictUpdate,
+  runDictRemove,
+  runDictExport,
+  runDictImport,
+} from "./commands/dict.js";
+import type { WordType } from "./voicevox/types.js";
 import { resolveConfig } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -225,6 +234,111 @@ program
       mcp: options.mcp ?? false,
       scope: options.scope,
     });
+  });
+
+const dict = program
+  .command("dict")
+  .description("ユーザー辞書を管理します");
+
+dict
+  .command("list")
+  .description("登録単語の一覧を表示します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .option("--json", "JSON形式で出力する", false)
+  .action(async (options) => {
+    await runDictList(options.host, Number(options.port), options.json);
+  });
+
+dict
+  .command("add <surface> <pronunciation> [accent_type]")
+  .description("単語を追加します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .addOption(
+    new Option("--word-type <type>", "品詞")
+      .choices(["PROPER_NOUN", "COMMON_NOUN", "VERB", "ADJECTIVE", "SUFFIX"])
+      .default("PROPER_NOUN")
+  )
+  .option("--priority <n>", "優先度 0-10", "5")
+  .action(async (surface, pronunciation, accentType, options) => {
+    const priority = Number(options.priority);
+    if (!Number.isFinite(priority) || priority < 0 || priority > 10) {
+      console.error("エラー: --priority は 0〜10 の整数で指定してください。");
+      process.exit(1);
+    }
+    const accent = accentType !== undefined ? Number(accentType) : 0;
+    if (!Number.isFinite(accent) || accent < 0) {
+      console.error("エラー: accent_type は 0 以上の整数で指定してください。");
+      process.exit(1);
+    }
+    await runDictAdd(options.host, Number(options.port), {
+      surface,
+      pronunciation,
+      accentType: accent,
+      wordType: options.wordType as WordType,
+      priority,
+    });
+  });
+
+dict
+  .command("update <word_uuid> <surface> <pronunciation> [accent_type]")
+  .description("単語を更新します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .addOption(
+    new Option("--word-type <type>", "品詞")
+      .choices(["PROPER_NOUN", "COMMON_NOUN", "VERB", "ADJECTIVE", "SUFFIX"])
+      .default("PROPER_NOUN")
+  )
+  .option("--priority <n>", "優先度 0-10", "5")
+  .action(async (wordUuid, surface, pronunciation, accentType, options) => {
+    const priority = Number(options.priority);
+    if (!Number.isFinite(priority) || priority < 0 || priority > 10) {
+      console.error("エラー: --priority は 0〜10 の整数で指定してください。");
+      process.exit(1);
+    }
+    const accent = accentType !== undefined ? Number(accentType) : 0;
+    if (!Number.isFinite(accent) || accent < 0) {
+      console.error("エラー: accent_type は 0 以上の整数で指定してください。");
+      process.exit(1);
+    }
+    await runDictUpdate(options.host, Number(options.port), wordUuid, {
+      surface,
+      pronunciation,
+      accentType: accent,
+      wordType: options.wordType as WordType,
+      priority,
+    });
+  });
+
+dict
+  .command("remove <word_uuid>")
+  .description("単語を削除します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .action(async (wordUuid, options) => {
+    await runDictRemove(options.host, Number(options.port), wordUuid);
+  });
+
+dict
+  .command("export")
+  .description("辞書をJSON形式でエクスポートします")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .option("--output <file>", "出力先ファイル (未指定時はstdout)")
+  .action(async (options) => {
+    await runDictExport(options.host, Number(options.port), options.output);
+  });
+
+dict
+  .command("import <file>")
+  .description("JSONファイルから辞書をインポートします")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .option("--override", "重複エントリを上書きする", false)
+  .action(async (file, options) => {
+    await runDictImport(options.host, Number(options.port), file, options.override);
   });
 
 program.parse(process.argv);

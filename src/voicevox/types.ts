@@ -95,3 +95,40 @@ export interface ConfigResult {
   config?: Config;
   message?: string;
 }
+
+export interface UserDictWord {
+  surface: string;
+  priority: number;
+  context_id: number;
+  part_of_speech: string;
+  part_of_speech_detail_1: string;
+  part_of_speech_detail_2: string;
+  part_of_speech_detail_3: string;
+  inflectional_type: string;
+  inflectional_form: string;
+  stem: string;
+  yomi: string;
+  pronunciation: string;
+  accent_type: number;
+  mora_count: number | null;
+  accent_associative_rule: string;
+}
+
+export type WordType = "PROPER_NOUN" | "COMMON_NOUN" | "VERB" | "ADJECTIVE" | "SUFFIX";
+
+export interface DictListResult {
+  status: "ok" | "error";
+  words?: Record<string, UserDictWord>;
+  message?: string;
+}
+
+export interface DictAddResult {
+  status: "ok" | "error";
+  uuid?: string;
+  message?: string;
+}
+
+export interface DictOperationResult {
+  status: "ok" | "error";
+  message?: string;
+}

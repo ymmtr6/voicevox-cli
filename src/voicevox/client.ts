@@ -7,7 +7,9 @@ import { promisify } from "node:util";
 import type {
   AudioQuery,
   Speaker,
+  UserDictWord,
   VoiceVoxClientOptions,
+  WordType,
 } from "./types.js";
 import {
   DEFAULT_TIMEOUT_MS,
@@ -198,6 +200,95 @@ export class VoiceVoxClient {
     }
     const arrayBuffer = await res.arrayBuffer();
     return Buffer.from(arrayBuffer);
+  }
+
+  async getUserDict(): Promise<Record<string, UserDictWord>> {
+    const res = await this.fetchWithRetry(`${this.baseUrl}/user_dict`);
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<Record<string, UserDictWord>>;
+  }
+
+  async addUserDictWord(params: {
+    surface: string;
+    pronunciation: string;
+    accent_type: number;
+    word_type?: WordType;
+    priority?: number;
+  }): Promise<string> {
+    const query = new URLSearchParams({
+      surface: params.surface,
+      pronunciation: params.pronunciation,
+      accent_type: String(params.accent_type),
+    });
+    if (params.word_type !== undefined) {
+      query.set("word_type", params.word_type);
+    }
+    if (params.priority !== undefined) {
+      query.set("priority", String(params.priority));
+    }
+    const res = await this.fetchWithRetry(`${this.baseUrl}/user_dict_word?${query}`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+    return res.json() as Promise<string>;
+  }
+
+  async updateUserDictWord(wordUuid: string, params: {
+    surface: string;
+    pronunciation: string;
+    accent_type: number;
+    word_type?: WordType;
+    priority?: number;
+  }): Promise<void> {
+    const query = new URLSearchParams({
+      surface: params.surface,
+      pronunciation: params.pronunciation,
+      accent_type: String(params.accent_type),
+    });
+    if (params.word_type !== undefined) {
+      query.set("word_type", params.word_type);
+    }
+    if (params.priority !== undefined) {
+      query.set("priority", String(params.priority));
+    }
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/user_dict_word/${encodeURIComponent(wordUuid)}?${query}`,
+      { method: "PUT" },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+  }
+
+  async deleteUserDictWord(wordUuid: string): Promise<void> {
+    const res = await this.fetchWithRetry(
+      `${this.baseUrl}/user_dict_word/${encodeURIComponent(wordUuid)}`,
+      { method: "DELETE" },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
+  }
+
+  async importUserDict(dictData: Record<string, UserDictWord>, override: boolean): Promise<void> {
+    const query = new URLSearchParams({ override: String(override) });
+    const res = await this.fetchWithRetry(`${this.baseUrl}/import_user_dict?${query}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(dictData),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`HTTP ${res.status}: ${body}`);
+    }
   }
 
   async speak(text: string, speakerId: number, speed: number): Promise<void> {
