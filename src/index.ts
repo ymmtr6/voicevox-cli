@@ -21,6 +21,12 @@ import {
   runDictExport,
   runDictImport,
 } from "./commands/dict.js";
+import {
+  runPresetList,
+  runPresetAdd,
+  runPresetUpdate,
+  runPresetRemove,
+} from "./commands/preset.js";
 import type { WordType } from "./voicevox/types.js";
 import { resolveConfig } from "./config.js";
 
@@ -30,6 +36,22 @@ const pkg = JSON.parse(readFileSync(resolve(__dirname, "..", "package.json"), "u
 
 const DEFAULT_HOST = "localhost";
 const DEFAULT_PORT = 50021;
+
+function requireFiniteNumber(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    console.error(`エラー: ${label} には有効な数値を指定してください。`);
+    process.exit(1);
+  }
+  return value;
+}
+
+function requirePositiveInt(value: number, label: string): number {
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    console.error(`エラー: ${label} には 0 以上の整数を指定してください。`);
+    process.exit(1);
+  }
+  return value;
+}
 
 const program = new Command();
 
@@ -339,6 +361,113 @@ dict
   .option("--override", "重複エントリを上書きする", false)
   .action(async (file, options) => {
     await runDictImport(options.host, Number(options.port), file, options.override);
+  });
+
+const preset = program
+  .command("preset")
+  .description("プリセットを管理します");
+
+preset
+  .command("list")
+  .description("プリセット一覧を表示します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .option("--json", "JSON形式で出力する", false)
+  .action(async (options) => {
+    await runPresetList(options.host, Number(options.port), options.json);
+  });
+
+preset
+  .command("add <name>")
+  .description("プリセットを追加します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .requiredOption("--speaker-uuid <uuid>", "キャラクターのUUID")
+  .requiredOption("--style-id <id>", "スタイルID")
+  .option("--speed <n>", "話速", "1.0")
+  .option("--pitch <n>", "音高", "0.0")
+  .option("--intonation <n>", "抑揚", "1.0")
+  .option("--volume <n>", "音量", "1.0")
+  .option("--pre-phoneme <n>", "音声の前の無音時間", "0.1")
+  .option("--post-phoneme <n>", "音声の後の無音時間", "0.1")
+  .option("--pause-length <n>", "句読点などの無音時間")
+  .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
+  .action(async (name, options) => {
+    const styleId = requirePositiveInt(Number(options.styleId), "--style-id");
+    const speedScale = requireFiniteNumber(Number(options.speed), "--speed");
+    const pitchScale = requireFiniteNumber(Number(options.pitch), "--pitch");
+    const intonationScale = requireFiniteNumber(Number(options.intonation), "--intonation");
+    const volumeScale = requireFiniteNumber(Number(options.volume), "--volume");
+    const prePhonemeLength = requireFiniteNumber(Number(options.prePhoneme), "--pre-phoneme");
+    const postPhonemeLength = requireFiniteNumber(Number(options.postPhoneme), "--post-phoneme");
+    const pauseLength = options.pauseLength !== undefined ? requireFiniteNumber(Number(options.pauseLength), "--pause-length") : undefined;
+    const pauseLengthScale = options.pauseLengthScale !== undefined ? requireFiniteNumber(Number(options.pauseLengthScale), "--pause-length-scale") : undefined;
+    await runPresetAdd(options.host, Number(options.port), {
+      name,
+      speakerUuid: options.speakerUuid,
+      styleId,
+      speedScale,
+      pitchScale,
+      intonationScale,
+      volumeScale,
+      prePhonemeLength,
+      postPhonemeLength,
+      pauseLength,
+      pauseLengthScale,
+    });
+  });
+
+preset
+  .command("update <id>")
+  .description("プリセットを更新します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .requiredOption("--name <name>", "プリセット名")
+  .requiredOption("--speaker-uuid <uuid>", "キャラクターのUUID")
+  .requiredOption("--style-id <id>", "スタイルID")
+  .option("--speed <n>", "話速", "1.0")
+  .option("--pitch <n>", "音高", "0.0")
+  .option("--intonation <n>", "抑揚", "1.0")
+  .option("--volume <n>", "音量", "1.0")
+  .option("--pre-phoneme <n>", "音声の前の無音時間", "0.1")
+  .option("--post-phoneme <n>", "音声の後の無音時間", "0.1")
+  .option("--pause-length <n>", "句読点などの無音時間")
+  .option("--pause-length-scale <n>", "句読点などの無音時間（倍率）")
+  .action(async (id, options) => {
+    const presetId = requirePositiveInt(Number(id), "id");
+    const styleId = requirePositiveInt(Number(options.styleId), "--style-id");
+    const speedScale = requireFiniteNumber(Number(options.speed), "--speed");
+    const pitchScale = requireFiniteNumber(Number(options.pitch), "--pitch");
+    const intonationScale = requireFiniteNumber(Number(options.intonation), "--intonation");
+    const volumeScale = requireFiniteNumber(Number(options.volume), "--volume");
+    const prePhonemeLength = requireFiniteNumber(Number(options.prePhoneme), "--pre-phoneme");
+    const postPhonemeLength = requireFiniteNumber(Number(options.postPhoneme), "--post-phoneme");
+    const pauseLength = options.pauseLength !== undefined ? requireFiniteNumber(Number(options.pauseLength), "--pause-length") : undefined;
+    const pauseLengthScale = options.pauseLengthScale !== undefined ? requireFiniteNumber(Number(options.pauseLengthScale), "--pause-length-scale") : undefined;
+    await runPresetUpdate(options.host, Number(options.port), {
+      id: presetId,
+      name: options.name,
+      speakerUuid: options.speakerUuid,
+      styleId,
+      speedScale,
+      pitchScale,
+      intonationScale,
+      volumeScale,
+      prePhonemeLength,
+      postPhonemeLength,
+      pauseLength,
+      pauseLengthScale,
+    });
+  });
+
+preset
+  .command("remove <id>")
+  .description("プリセットを削除します")
+  .option("--host <host>", "VoiceVoxホスト", DEFAULT_HOST)
+  .option("--port <port>", "VoiceVoxポート", String(DEFAULT_PORT))
+  .action(async (id, options) => {
+    const presetId = requirePositiveInt(Number(id), "id");
+    await runPresetRemove(options.host, Number(options.port), presetId);
   });
 
 program.parse(process.argv);
