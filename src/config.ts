@@ -157,16 +157,22 @@ let cachedTty: string | null | undefined = undefined;
  * 現在のTTY名を取得する（例: /dev/ttys001）
  * TTYでない場合は null を返す
  * 結果はモジュールスコープでメモ化され、プロセス内で1回だけ判定される
+ *
+ * `tty` コマンド（stdin依存）ではなく `ps` でプロセスの制御端末を取得することで、
+ * stdin がパイプになっている場合（Claude Code hook など）でも正しく検出できる。
  */
 export function getCurrentTty(): string | null {
   if (cachedTty !== undefined) return cachedTty;
   try {
-    // stdin は継承して TTY を検出、stdout/stderr はパイプで結果を取得
-    const tty = execSync("tty", { encoding: "utf-8", stdio: ["inherit", "pipe", "pipe"] }).trim();
-    if (tty === "not a tty") {
+    // ps でプロセス自身の制御端末を取得（stdin/stdout/stderrのリダイレクト状態に依存しない）
+    const raw = execSync(`ps -p ${process.pid} -o tty=`, { encoding: "utf-8" }).trim();
+    // 制御端末なし（デーモン等）の場合は "?" または "??" が返る
+    if (!raw || raw === "?" || raw === "??") {
       cachedTty = null;
       return null;
     }
+    // macOS: "ttys001" → "/dev/ttys001", Linux: "pts/0" → "/dev/pts/0"
+    const tty = raw.startsWith("/") ? raw : `/dev/${raw}`;
     cachedTty = tty;
     return tty;
   } catch {
