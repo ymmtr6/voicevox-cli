@@ -349,8 +349,9 @@ export class VoiceVoxClient {
 
     const player = getAudioPlayer();
     if (!player) {
+      await unlink(tmpPath).catch(() => undefined);
       throw new Error(
-        `No audio player available for platform ${process.platform}. WAV file saved at: ${tmpPath}`
+        `No audio player available for platform ${process.platform}.`
       );
     }
 
@@ -358,14 +359,11 @@ export class VoiceVoxClient {
       await execFileAsync(player.cmd, player.args(tmpPath));
       await unlink(tmpPath).catch(() => undefined);
     } catch (error) {
-      // If player command not found, preserve file and throw with path info
-      if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new Error(
-          `Audio player '${player.cmd}' not found. WAV file saved at: ${tmpPath}`
-        );
-      }
-      // For other errors, clean up and rethrow
+      // For all errors, clean up temp file and rethrow without exposing the path
       await unlink(tmpPath).catch(() => undefined);
+      if (error instanceof Error && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
+        throw new Error(`Audio player '${player.cmd}' not found.`);
+      }
       throw error;
     }
   }
