@@ -1,7 +1,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, dirname } from "node:path";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type { Config } from "./voicevox/types.js";
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24時間
@@ -165,7 +165,8 @@ export function getCurrentTty(): string | null {
   if (cachedTty !== undefined) return cachedTty;
   try {
     // ps でプロセス自身の制御端末を取得（stdin/stdout/stderrのリダイレクト状態に依存しない）
-    const raw = execSync(`ps -p ${process.pid} -o tty=`, { encoding: "utf-8" }).trim();
+    // execFileSync を使用してシェル経由での実行を回避
+    const raw = execFileSync("ps", ["-p", String(process.pid), "-o", "tty="], { encoding: "utf-8" }).trim();
     // 制御端末なし（デーモン等）の場合は "?" または "??" が返る
     if (!raw || raw === "?" || raw === "??") {
       cachedTty = null;
