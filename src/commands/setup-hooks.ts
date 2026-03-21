@@ -36,7 +36,7 @@ function writeSettings(path: string, settings: ClaudeSettings): void {
   if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
-  writeFileSync(path, JSON.stringify(settings, null, 2) + "\n", "utf-8");
+  writeFileSync(path, JSON.stringify(settings, null, 2) + "\n", { encoding: "utf-8", mode: 0o600 });
 }
 
 /**
