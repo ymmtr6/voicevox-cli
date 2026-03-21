@@ -1,3 +1,9 @@
+---
+name: voicevox-dict-suggest
+description: Claude Codeの会話履歴からVoiceVoxが誤読する英単語を検出し、辞書登録用JSONを生成します。Use when the user wants to fix VoiceVox pronunciation issues for English words.
+allowed-tools: mcp__voicevox__voicevox_speak, mcp__voicevox__voicevox_test
+---
+
 # voicevox-dict-suggest
 
 Claude Codeの会話履歴を分析し、VoiceVoxが正しく読めない英単語の辞書登録用JSONを生成するskillです。
