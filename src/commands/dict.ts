@@ -158,7 +158,11 @@ export async function runDictImport(
 
   try {
     const content = await readFile(file, "utf-8");
-    const dictData = JSON.parse(content) as Record<string, UserDictWord>;
+    const parsed: unknown = JSON.parse(content);
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Invalid dict file: top-level value must be a JSON object.");
+    }
+    const dictData = parsed as Record<string, UserDictWord>;
     const client = new VoiceVoxClient({ host, port });
     await client.importUserDict(dictData, override);
   } catch (err) {
