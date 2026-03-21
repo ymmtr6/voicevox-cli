@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { VoiceVoxClient } from "../voicevox/client.js";
 import type {
   DictListResult,
@@ -136,8 +137,9 @@ export async function runDictExport(host: string, port: number, output?: string)
     const json = JSON.stringify(words, null, 2);
 
     if (output) {
-      await writeFile(output, json, "utf-8");
-      const result: DictOperationResult = { status: "ok", message: `エクスポート先: ${output}` };
+      const safePath = resolve(output);
+      await writeFile(safePath, json, "utf-8");
+      const result: DictOperationResult = { status: "ok", message: `エクスポート先: ${safePath}` };
       console.log(JSON.stringify(result, null, 2));
     } else {
       console.log(json);
@@ -157,7 +159,8 @@ export async function runDictImport(
   const result: DictOperationResult = { status: "ok" };
 
   try {
-    const content = await readFile(file, "utf-8");
+    const safePath = resolve(file);
+    const content = await readFile(safePath, "utf-8");
     const dictData = JSON.parse(content) as Record<string, UserDictWord>;
     const client = new VoiceVoxClient({ host, port });
     await client.importUserDict(dictData, override);
