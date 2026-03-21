@@ -49,6 +49,31 @@ function getAudioPlayer(): { cmd: string; args: (path: string) => string[] } | n
   }
 }
 
+const ALLOWED_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+/**
+ * Validates that the host is a loopback address.
+ * VoiceVox only runs locally, so remote hosts are rejected to prevent SSRF.
+ */
+function validateHost(host: string): string {
+  if (!ALLOWED_HOSTS.has(host)) {
+    throw new Error(
+      `Invalid host: "${host}". Only loopback addresses (localhost, 127.0.0.1, ::1) are allowed.`
+    );
+  }
+  return host;
+}
+
+/**
+ * Validates that port is in valid range (1-65535).
+ */
+function validatePort(port: number): number {
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid port: ${port}. Port must be an integer between 1 and 65535.`);
+  }
+  return port;
+}
+
 /**
  * Validates and returns a valid timeout/delay value in milliseconds.
  * Returns default value if input is invalid (NaN, negative, or not finite).
@@ -82,7 +107,9 @@ export class VoiceVoxClient {
   private retryDelayMs: number;
 
   constructor(options: VoiceVoxClientOptions) {
-    this.baseUrl = `http://${options.host}:${options.port}`;
+    const host = validateHost(options.host);
+    const port = validatePort(options.port);
+    this.baseUrl = `http://${host}:${port}`;
     this.timeoutMs = validateNonNegativeMs(options.timeoutMs, DEFAULT_TIMEOUT_MS);
     this.retryCount = validateRetryCount(options.retryCount, DEFAULT_RETRY_COUNT);
     this.retryDelayMs = validateNonNegativeMs(options.retryDelayMs, DEFAULT_RETRY_DELAY_MS);
