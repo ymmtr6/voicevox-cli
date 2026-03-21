@@ -4,6 +4,7 @@ import {
   validateRetryCount,
   validateFinite,
   resolveConfig,
+  getCurrentTty,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_RETRY_COUNT,
   DEFAULT_RETRY_DELAY_MS,
@@ -249,5 +250,93 @@ describe("resolveConfig", () => {
       // Uses config file if set, otherwise default (1.3)
       expect(result.speed).toBeGreaterThanOrEqual(1.0);
     });
+  });
+});
+
+describe("getCurrentTty", () => {
+  // execFileSync をモックするためにモジュールをリセット
+  beforeEach(() => {
+    vi.resetModules();
+    // キャッシュをクリアするため、モジュールの内部変数をリセット
+  });
+
+  it("returns null when ps returns '?' (no controlling terminal)", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => "?"),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBeNull();
+  });
+
+  it("returns null when ps returns '??' (no controlling terminal)", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => "??"),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBeNull();
+  });
+
+  it("returns null when ps returns empty string", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => ""),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBeNull();
+  });
+
+  it("normalizes Linux pts format (pts/0 -> /dev/pts/0)", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => "pts/0"),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBe("/dev/pts/0");
+  });
+
+  it("normalizes macOS tty format (ttys001 -> /dev/ttys001)", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => "ttys001"),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBe("/dev/ttys001");
+  });
+
+  it("returns path as-is when already starts with /dev/", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => "/dev/pts/1"),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBe("/dev/pts/1");
+  });
+
+  it("returns null when ps command fails", async () => {
+    vi.doMock("node:child_process", () => ({
+      execFileSync: vi.fn(() => {
+        throw new Error("ps command failed");
+      }),
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    expect(getTty()).toBeNull();
+  });
+
+  it("caches the result and calls ps only once", async () => {
+    const mockExecFileSync = vi.fn(() => "pts/0");
+    vi.doMock("node:child_process", () => ({
+      execFileSync: mockExecFileSync,
+    }));
+
+    const { getCurrentTty: getTty } = await import("./config.js");
+    const result1 = getTty();
+    const result2 = getTty();
+
+    expect(result1).toBe("/dev/pts/0");
+    expect(result2).toBe("/dev/pts/0");
+    expect(mockExecFileSync).toHaveBeenCalledTimes(1);
   });
 });
