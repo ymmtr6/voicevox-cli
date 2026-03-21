@@ -2,12 +2,12 @@ import { readConfig } from "../config.js";
 import { VoiceVoxClient } from "../voicevox/client.js";
 import type { Speaker } from "../voicevox/types.js";
 
-function pickRandom(pool: number[]): number {
+export function pickRandom(pool: number[]): number {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /** キャラクターごとに「ノーマル」または先頭スタイルを1つ選んだIDリストを返す */
-function defaultPoolFromSpeakers(speakers: Speaker[]): number[] {
+export function defaultPoolFromSpeakers(speakers: Speaker[]): number[] {
   return speakers
     .map((s) => {
       const normal = s.styles.find((st) => st.name === "ノーマル");
@@ -21,7 +21,7 @@ async function fetchSpeakers(host: string, port: number): Promise<Speaker[]> {
   return client.getSpeakers();
 }
 
-function buildNameMap(speakers: Speaker[]): Map<number, string> {
+export function buildNameMap(speakers: Speaker[]): Map<number, string> {
   const map = new Map<number, string>();
   for (const s of speakers) {
     for (const st of s.styles) {

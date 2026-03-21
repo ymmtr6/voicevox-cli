@@ -5,13 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm run build       # TypeScript compile → dist/
+npm run build          # TypeScript compile → dist/
 npm run dev -- <args>  # Run via tsx without building (e.g. npm run dev -- speak "テスト")
+npm test               # Run vitest
+npm run test:watch     # Run vitest in watch mode
 ```
 
-No test runner is configured. Manual testing requires a running VoiceVox engine on localhost:50021.
-
-After editing, rebuild with `npm run build` and verify with `voicevox-cli test`.
+Manual testing requires a running VoiceVox engine on localhost:50021. After editing, rebuild with `npm run build` and verify with `voicevox-cli test`.
 
 ## Architecture
 
@@ -21,11 +21,13 @@ After editing, rebuild with `npm run build` and verify with `voicevox-cli test`.
 
 **VoiceVox client** (`src/voicevox/client.ts`): wraps the HTTP API. The `speak()` method calls `/audio_query` then `/synthesis`, writes a temp WAV, plays it with `afplay` (macOS only), then deletes the file.
 
-**Config resolution** (`src/config.ts`): priority order for `speaker` and `speed` is CLI flag > `VOICEVOX_SPEAKER`/`VOICEVOX_SPEED` env vars > `~/.config/voicevox-cli/config.json` > defaults (speaker=1, speed=1.3). The speakers cache (`~/.config/voicevox-cli/speakers-cache.json`) has a 24h TTL and is used by `current-speaker` for name resolution without hitting the API.
+**Config resolution** (`src/config.ts`): priority order for settings is CLI flag > env vars (`VOICEVOX_SPEAKER`/`VOICEVOX_SPEED`/`VOICEVOX_TIMEOUT_MS`/`VOICEVOX_RETRY_COUNT`/`VOICEVOX_RETRY_DELAY_MS`) > `~/.config/voicevox-cli/config.json` > defaults. The speakers cache (`~/.config/voicevox-cli/speakers-cache.json`) has a 24h TTL and is used by `current-speaker` for name resolution without hitting the API.
 
 **speak-hooks** (`src/commands/speak-hooks.ts`): designed for Claude Code Stop/SubagentStop/Notification hooks. Reads JSON from stdin (skips if TTY). Text priority: `last_assistant_message` field → parse JSONL transcript at `transcript_path` → `--fallback` text. Exits immediately if `stop_hook_active` is true (prevents infinite loops).
 
 **MCP server** (`src/commands/mcp-server.ts`): stdio MCP server exposing `voicevox_test`, `voicevox_speak`, `voicevox_speakers` tools.
+
+**dict/preset commands**: manage VoiceVox user dictionary and presets via API endpoints.
 
 ## Module system
 
