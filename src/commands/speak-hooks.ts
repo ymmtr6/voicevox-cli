@@ -227,7 +227,11 @@ export async function runSpeakHooks(options: {
 
   let hookData: HookInput = {};
   try {
-    hookData = JSON.parse(input);
+    const parsed: unknown = JSON.parse(input);
+    // オブジェクト以外（配列・null・プリミティブ）は無効入力として扱う
+    if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
+      hookData = parsed as HookInput;
+    }
   } catch {
     // JSON でなければ空オブジェクトとして扱う
   }
