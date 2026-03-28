@@ -341,69 +341,6 @@ describe("runSpeakHooks", () => {
     });
   });
 
-  describe("PermissionRequest", () => {
-    it("speaks permission request with tool name", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({
-        hook_event_name: "PermissionRequest",
-        requested_tool: "Bash",
-      });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "Bashの権限を要求しています",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-
-    it("uses default message when no tool info", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({ hook_event_name: "PermissionRequest" });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "権限を要求しています",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-  });
-
-  describe("SubagentStart", () => {
-    it("speaks subagent start with description", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({
-        hook_event_name: "SubagentStart",
-        agent_description: "ファイルを検索",
-      });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "サブエージェントを起動: ファイルを検索",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-
-    it("speaks subagent start with agent type", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({
-        hook_event_name: "SubagentStart",
-        agent_type: "Explore",
-      });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "Exploreエージェントを起動します",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-
-    it("uses default message when no info", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({ hook_event_name: "SubagentStart" });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "サブエージェントを起動します",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-  });
-
   describe("TeammateIdle", () => {
     it("speaks teammate idle with name", async () => {
       const { runSpeak } = await import("./speak.js");
@@ -454,64 +391,26 @@ describe("runSpeakHooks", () => {
     });
   });
 
-  describe("ConfigChange", () => {
-    it("speaks config change with file", async () => {
+  describe("TaskCreated", () => {
+    it("speaks task creation with description", async () => {
       const { runSpeak } = await import("./speak.js");
       const payload = JSON.stringify({
-        hook_event_name: "ConfigChange",
-        config_file: "settings.json",
+        hook_event_name: "TaskCreated",
+        task_description: "コードレビュー",
       });
       await runSpeakHooks({ ...baseOptions, payload });
       expect(runSpeak).toHaveBeenCalledWith(
-        "設定を変更しました: settings.json",
+        "タスク作成: コードレビュー",
         "localhost", 50021, 1, 1.3, 5000, 3, 1000,
       );
     });
 
-    it("uses default message when no file", async () => {
+    it("uses default message when no description", async () => {
       const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({ hook_event_name: "ConfigChange" });
+      const payload = JSON.stringify({ hook_event_name: "TaskCreated" });
       await runSpeakHooks({ ...baseOptions, payload });
       expect(runSpeak).toHaveBeenCalledWith(
-        "設定を変更しました",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-  });
-
-  describe("WorktreeCreate/WorktreeRemove", () => {
-    it("speaks worktree creation with name", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({
-        hook_event_name: "WorktreeCreate",
-        worktree_name: "feature-branch",
-      });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "ワークツリーを作成しました: feature-branch",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-
-    it("speaks worktree removal with name", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({
-        hook_event_name: "WorktreeRemove",
-        worktree_name: "feature-branch",
-      });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "ワークツリーを削除しました: feature-branch",
-        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
-      );
-    });
-
-    it("uses default message when no name", async () => {
-      const { runSpeak } = await import("./speak.js");
-      const payload = JSON.stringify({ hook_event_name: "WorktreeCreate" });
-      await runSpeakHooks({ ...baseOptions, payload });
-      expect(runSpeak).toHaveBeenCalledWith(
-        "ワークツリーを作成しました",
+        "タスクを作成しました",
         "localhost", 50021, 1, 1.3, 5000, 3, 1000,
       );
     });
@@ -524,6 +423,18 @@ describe("runSpeakHooks", () => {
       await runSpeakHooks({ ...baseOptions, payload });
       expect(runSpeak).toHaveBeenCalledWith(
         "コンテキストを圧縮します",
+        "localhost", 50021, 1, 1.3, 5000, 3, 1000,
+      );
+    });
+  });
+
+  describe("PostCompact", () => {
+    it("speaks post compact message", async () => {
+      const { runSpeak } = await import("./speak.js");
+      const payload = JSON.stringify({ hook_event_name: "PostCompact" });
+      await runSpeakHooks({ ...baseOptions, payload });
+      expect(runSpeak).toHaveBeenCalledWith(
+        "コンテキストの圧縮が完了しました",
         "localhost", 50021, 1, 1.3, 5000, 3, 1000,
       );
     });

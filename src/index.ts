@@ -200,28 +200,25 @@ program
   .description("Claude Code hooks に voicevox-cli speak-hooks を設定します")
   .option("--scope <scope>", "設定スコープ (project または user)", "project")
   .option("--events <events>", "カンマ区切りでイベントを指定 (例: Stop,SubagentStop,Notification)")
-  .option("--all", "全17イベントを設定する", false)
+  .option("--all", "全13イベントを設定する", false)
   .option("--dry-run", "設定をファイルに書き込まず出力のみ", false)
   .action(async (options) => {
     const defaultEvents = ["Stop", "SubagentStop", "Notification"];
+    // Claude Code v2.1.86 の settings.json バリデーションで受け入れられるイベント (13個)
     const allEvents = [
       "SessionStart",
       "SessionEnd",
       "UserPromptSubmit",
       "PreToolUse",
       "PostToolUse",
-      "PostToolUseFailure",
       "Notification",
-      "SubagentStart",
       "SubagentStop",
       "Stop",
-      "TeammateIdle",
-      "TaskCompleted",
-      "ConfigChange",
-      "WorktreeCreate",
-      "WorktreeRemove",
       "PreCompact",
-      "PermissionRequest",
+      "PostCompact",
+      "TeammateIdle",
+      "TaskCreated",
+      "TaskCompleted",
     ];
 
     let events: string[];

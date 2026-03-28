@@ -14,7 +14,7 @@ voicevox-cli setup-hooks --scope project
 # ユーザースコープ (全プロジェクト共通)
 voicevox-cli setup-hooks --scope user
 
-# 全17イベントを設定
+# 全13イベントを設定
 voicevox-cli setup-hooks --all
 
 # 特定のイベントのみ
@@ -24,7 +24,7 @@ voicevox-cli setup-hooks --events Stop,Notification,SessionStart
 voicevox-cli setup-hooks --dry-run
 ```
 
-## 対応イベント
+## 対応イベント (Claude Code v2.1.86 settings.json バリデーション準拠)
 
 | イベント | 説明 |
 |---------|------|
@@ -33,18 +33,14 @@ voicevox-cli setup-hooks --dry-run
 | `UserPromptSubmit` | ユーザープロンプト送信 |
 | `PreToolUse` | ツール実行前 |
 | `PostToolUse` | ツール実行後 |
-| `PostToolUseFailure` | ツール実行失敗 |
 | `Notification` | 通知 |
-| `SubagentStart` | サブエージェント開始 |
 | `SubagentStop` | サブエージェント終了 |
 | `Stop` | タスク完了 |
-| `TeammateIdle` | チームメイトアイドル |
-| `TaskCompleted` | タスク完了 |
-| `ConfigChange` | 設定変更 |
-| `WorktreeCreate` | Worktree 作成 |
-| `WorktreeRemove` | Worktree 削除 |
 | `PreCompact` | コンパクト前 |
-| `PermissionRequest` | 権限リクエスト |
+| `PostCompact` | コンパクト後 |
+| `TeammateIdle` | チームメイトアイドル |
+| `TaskCreated` | タスク作成 |
+| `TaskCompleted` | タスク完了 |
 
 ## speak-hooks の動作
 

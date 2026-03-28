@@ -22,23 +22,15 @@ interface HookInput {
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   tool_response?: unknown;
-  // PostToolUseFailure用（フィールド名は実際のペイロードで検証が必要）
+  // PostToolUseFailure fields
   error_message?: string;
-  // SubagentStart / SubagentStop fields (フィールド名は実際のペイロードで検証が必要)
+  // SubagentStart fields
   agent_type?: string;
   agent_description?: string;
-  // TaskCompleted fields (フィールド名は実際のペイロードで検証が必要)
+  // TaskCreated / TaskCompleted fields
   task_id?: string;
   task_description?: string;
-  // WorktreeCreate / WorktreeRemove fields (フィールド名は実際のペイロードで検証が必要)
-  worktree_path?: string;
-  worktree_name?: string;
-  // PermissionRequest fields (フィールド名は実際のペイロードで検証が必要)
-  permission_type?: string;
-  requested_tool?: string;
-  // ConfigChange fields (フィールド名は実際のペイロードで検証が必要)
-  config_file?: string;
-  // TeammateIdle fields (フィールド名は実際のペイロードで検証が必要)
+  // TeammateIdle fields
   teammate_name?: string;
 }
 
@@ -157,12 +149,6 @@ function getTextForHookEvent(eventName: string | undefined, hookData: HookInput,
       }
       return "ツールの実行に失敗しました";
 
-    case "PermissionRequest":
-      if (hookData.requested_tool) {
-        return `${hookData.requested_tool}の権限を要求しています`;
-      }
-      return "権限を要求しています";
-
     case "SubagentStart":
       if (hookData.agent_description) {
         return `サブエージェントを起動: ${firstLine(hookData.agent_description)}`;
@@ -178,32 +164,23 @@ function getTextForHookEvent(eventName: string | undefined, hookData: HookInput,
       }
       return "チームメイトが待機中です";
 
+    case "TaskCreated":
+      if (hookData.task_description) {
+        return `タスク作成: ${firstLine(hookData.task_description)}`;
+      }
+      return "タスクを作成しました";
+
     case "TaskCompleted":
       if (hookData.task_description) {
         return `タスク完了: ${firstLine(hookData.task_description)}`;
       }
       return "タスクが完了しました";
 
-    case "ConfigChange":
-      if (hookData.config_file) {
-        return `設定を変更しました: ${hookData.config_file}`;
-      }
-      return "設定を変更しました";
-
-    case "WorktreeCreate":
-      if (hookData.worktree_name) {
-        return `ワークツリーを作成しました: ${hookData.worktree_name}`;
-      }
-      return "ワークツリーを作成しました";
-
-    case "WorktreeRemove":
-      if (hookData.worktree_name) {
-        return `ワークツリーを削除しました: ${hookData.worktree_name}`;
-      }
-      return "ワークツリーを削除しました";
-
     case "PreCompact":
       return "コンテキストを圧縮します";
+
+    case "PostCompact":
+      return "コンテキストの圧縮が完了しました";
 
     default:
       return fallback;
